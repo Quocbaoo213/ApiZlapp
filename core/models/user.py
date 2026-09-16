@@ -71,23 +71,23 @@ class UserProfile:
         return Gender.to_display_string(self.gender)
 
     def to_card(self) -> str:
-        lines = ['[THÔNG TIN NGƯỜI DÙNG]', f'• Tên hiển thị : {self.display_name}']
+        lines = ['THONG TIN NGUOI DUNG', f'  Tên hiển thị : {self.display_name}']
         if self.alias:
-            lines.append(f'• Biệt danh     : {self.alias}')
-        lines.append(f'• User ID (UID) : {self.user_id}')
+            lines.append(f'  Biệt danh     : {self.alias}')
+        lines.append(f'  User ID (UID) : {self.user_id}')
         if self.username:
-            lines.append(f'• Username      : @{self.username}')
-        lines.append(f'• Giới tính     : {Gender.to_display_string(self.gender)}')
-        lines.append(f"• Ngày sinh     : {self.dob or 'Không công khai'}")
-        lines.append(f"• Số điện thoại : {self.phone or 'Không công khai'}")
-        lines.append(f"• Quan hệ       : {('Bạn bè' if self.is_friend else 'Người lạ / Thành viên nhóm')}")
+            lines.append(f'  Username      : @{self.username}')
+        lines.append(f'  Giới tính     : {Gender.to_display_string(self.gender)}')
+        lines.append(f"  Ngày sinh     : {self.dob or 'Không công khai'}")
+        lines.append(f"  Số điện thoại : {self.phone or 'Không công khai'}")
+        lines.append(f"  Quan hệ       : {('Bạn bè' if self.is_friend else 'Người lạ / Thành viên nhóm')}")
         if self.created_time:
-            lines.append(f'• Tạo tài khoản : {self.created_time}')
+            lines.append(f'  Tạo tài khoản : {self.created_time}')
         if self.last_online:
-            lines.append(f'• Lần cuối onl  : {self.last_online}')
+            lines.append(f'  Lần cuối onl  : {self.last_online}')
         if self.account_type:
-            lines.append(f'• Loại tài khoản: {self.account_type}')
-        lines.append(f"• Trạng thái    : {('Bị chặn' if self.is_blocked else 'Bình thường')}")
+            lines.append(f'  Loại tài khoản: {self.account_type}')
+        lines.append(f"  Trạng thái    : {('Bị chặn' if self.is_blocked else 'Bình thường')}")
         if self.avatar:
-            lines.append(f'• Ảnh đại diện  : {self.avatar}')
+            lines.append(f'  Ảnh đại diện  : {self.avatar}')
         return '\n'.join(lines)

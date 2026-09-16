@@ -97,13 +97,13 @@ def probe_socket_authen(sk: str, dk: bytes, ksid: str, servers: List[Dict[str, A
                         typ = '4-DECRYPTED'
                         results.append((host, port, typ, st))
                         if st == 0:
-                            logger.info(f'[✔] [{host}:{port}] -> PROV AUTHEN SUCCESS (status=0)!')
+                            logger.info(f'[{host}:{port}] -> PROV AUTHEN SUCCESS (status=0)!')
                             return (results, True)
                     except Exception:
                         st = '4-gcmfail'
             results.append((host, port, typ, st))
             if st == 0:
-                logger.info(f'[✔] [{host}:{port}] -> AUTHEN SUCCESS!')
+                logger.info(f'[{host}:{port}] -> AUTHEN SUCCESS!')
                 return (results, True)
         except Exception as e:
             results.append((host, port, 'ERR', str(e)))

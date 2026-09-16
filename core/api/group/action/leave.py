@@ -12,5 +12,5 @@ class LeaveAPI(BaseAPI):
         try:
             return self._socket.leave_group(group_id=int(group_id), new_owner_id=int(new_owner_id) if new_owner_id else 0, silent=silent, block_readd=block_readd, wait_response=wait_response, timeout=timeout)
         except Exception as e:
-            logger.error(f'[!] Lỗi khi rời nhóm {group_id}: {e}')
+            logger.error(f'Lỗi khi rời nhóm {group_id}: {e}')
             return {'sent': False, 'error': str(e)} if wait_response else False

@@ -11,5 +11,5 @@ class ReceiptsAPI(BaseAPI):
         try:
             return self._socket.send_delivery_receipt(group_id=int(group_id), sender_uid=int(sender_uid), cli_msg_id=int(cli_msg_id), global_msg_id=int(global_msg_id))
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi delivery receipt: {e}')
+            logger.error(f'Lỗi gửi delivery receipt: {e}')
             return False

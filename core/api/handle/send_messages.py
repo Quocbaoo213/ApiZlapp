@@ -18,7 +18,7 @@ class SendMessagesAPI(BaseAPI):
             else:
                 return self._socket.send_1to1_message(to_uid=t_id, text=text, ttl=ttl, quote_data=quote_data, mentions=mentions, style_id=style_id, size=size, color=color, bold=bold, italic=italic, underline=underline, strike=strike, fontsize=fontsize, list_type=list_type)
         except Exception as e:
-            logger.error(f'[!] Lỗi khi gửi tin nhắn tới {t_id}: {e}')
+            logger.error(f'Lỗi khi gửi tin nhắn tới {t_id}: {e}')
             return False
 
     def send_group_message(self, group_id: Union[int, str], text: str, **kwargs) -> bool:

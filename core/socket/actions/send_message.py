@@ -23,7 +23,7 @@ class SendMessageActionMixin:
             self.last_traffic = time.time()
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi group message: {e}')
+            logger.error(f'Lỗi gửi group message: {e}')
             return False
 
     def send_1to1_message(self, target_uid: int, text: str, ttl_ms: int=0, ttl: Optional[int]=None, quote_data: Optional[dict]=None, style_id: Optional[int]=None, size: Optional[int]=None, color: Optional[str]=None, bold: bool=False, italic: bool=False, underline: bool=False, strike: bool=False, fontsize: Optional[int]=None, list_type: Optional[int]=None, rtf_mode: str='fwd', attach: Optional[Union[dict, str]]=None) -> bool:
@@ -42,7 +42,7 @@ class SendMessageActionMixin:
             self.last_traffic = time.time()
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi 1-1 message: {e}')
+            logger.error(f'Lỗi gửi 1-1 message: {e}')
             return False
 
     def set_conversation_ttl(self, target_id: int, ttl_seconds: int, is_group: bool=True) -> bool:
@@ -61,5 +61,5 @@ class SendMessageActionMixin:
             self.last_traffic = time.time()
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi cài đặt TTL: {e}')
+            logger.error(f'Lỗi cài đặt TTL: {e}')
             return False

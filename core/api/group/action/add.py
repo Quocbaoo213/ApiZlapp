@@ -12,7 +12,7 @@ class AddAPI(BaseAPI):
         try:
             return self._socket.add_member(group_id=int(group_id), member_uids=member_uids, is_invite=is_invite)
         except Exception as e:
-            logger.error(f'[!] Lỗi thêm thành viên vào nhóm {group_id}: {e}')
+            logger.error(f'Lỗi thêm thành viên vào nhóm {group_id}: {e}')
             return False
 
     def invite_member(self, group_id: Union[int, str], member_uids: Union[int, str, List[Union[int, str]]]) -> bool:

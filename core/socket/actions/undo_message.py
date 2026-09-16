@@ -17,10 +17,10 @@ class UndoMessageActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f"[✔] Đã gửi lệnh thu hồi tin nhắn ({('Group' if is_group else 'User')} ID={tid}, MsgID={global_msg_id or cli_msg_id})")
+            logger.info(f"Đã gửi lệnh thu hồi tin nhắn ({('Group' if is_group else 'User')} ID={tid}, MsgID={global_msg_id or cli_msg_id})")
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi khi thu hồi tin nhắn: {e}')
+            logger.error(f'Lỗi khi thu hồi tin nhắn: {e}')
             return False
 
     def delete_message(self, target_id: int | str, global_msg_id: int=0, cli_msg_id: int=0, owner_id: int=0, is_group: bool=True) -> bool:
@@ -35,8 +35,8 @@ class UndoMessageActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f"[✔] Đã gửi lệnh xóa tin nhắn ({('Group' if is_group else 'User')} ID={tid}, MsgID={global_msg_id or cli_msg_id})")
+            logger.info(f"Đã gửi lệnh xóa tin nhắn ({('Group' if is_group else 'User')} ID={tid}, MsgID={global_msg_id or cli_msg_id})")
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi khi xóa tin nhắn: {e}')
+            logger.error(f'Lỗi khi xóa tin nhắn: {e}')
             return False

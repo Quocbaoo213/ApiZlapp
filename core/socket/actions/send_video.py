@@ -23,5 +23,5 @@ class SendVideoActionMixin:
             self.last_traffic = time.time()
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi video tới {target_id}: {e}')
+            logger.error(f'Lỗi gửi video tới {target_id}: {e}')
             return False

@@ -15,7 +15,7 @@ class SendDoodleAPI(BaseAPI):
         try:
             return self._socket.send_photo(target_id=t_id, photo_url_or_path=doodle_url_or_path, is_group=is_group, caption=caption, title=title, description=description, thumb_url=thumb_url, hd_url=hd_url, width=width, height=height, total_size=total_size, ttl=ttl, quote_data=quote_data, native=native, sub_type=sub_type, is_original=is_original)
         except Exception as e:
-            logger.error(f'[!] Lỗi khi gửi doodle tới {t_id}: {e}')
+            logger.error(f'Lỗi khi gửi doodle tới {t_id}: {e}')
             return False
 
     def send_group_doodle(self, group_id: Union[int, str], doodle_url_or_path: str, caption: str='', **kwargs) -> bool:

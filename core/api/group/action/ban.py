@@ -14,7 +14,7 @@ class BanAPI(BaseAPI):
                 return self._socket.block_group_member(group_id=int(group_id), member_uids=member_uids)
             return self._socket.kick_member(group_id=int(group_id), member_uids=member_uids, is_block=True)
         except Exception as e:
-            logger.error(f'[!] Lỗi block thành viên khỏi nhóm {group_id}: {e}')
+            logger.error(f'Lỗi block thành viên khỏi nhóm {group_id}: {e}')
             return False
 
     def ban_member(self, group_id: Union[int, str], member_uids: Union[int, str, List[Union[int, str]]]) -> bool:
@@ -24,5 +24,5 @@ class BanAPI(BaseAPI):
         try:
             return self._socket.kick_member(group_id=int(group_id), member_uids=member_uids, is_block=True)
         except Exception as e:
-            logger.error(f'[!] Lỗi ban thành viên khỏi nhóm {group_id}: {e}')
+            logger.error(f'Lỗi ban thành viên khỏi nhóm {group_id}: {e}')
             return False

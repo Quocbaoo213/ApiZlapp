@@ -11,5 +11,5 @@ class SendTypingAPI(BaseAPI):
         try:
             return self._socket.send_typing(target_id=int(target_id), is_group=is_group)
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi typing tới {target_id}: {e}')
+            logger.error(f'Lỗi gửi typing tới {target_id}: {e}')
             return False

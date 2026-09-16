@@ -23,6 +23,6 @@ class SendImageActionMixin:
             self.last_traffic = time.time()
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi ảnh tới {target_id}: {e}')
+            logger.error(f'Lỗi gửi ảnh tới {target_id}: {e}')
             return False
     send_image = send_photo

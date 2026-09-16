@@ -12,5 +12,5 @@ class UnpinAPI(BaseAPI):
         try:
             return self._socket.unpin_message(group_id=int(group_id), global_msg_id=int(global_msg_id or 0), cli_msg_id=int(cli_msg_id or 0))
         except Exception as e:
-            logger.error(f'[!] Lỗi khi bỏ ghim tin nhắn trong Group {group_id}: {e}')
+            logger.error(f'Lỗi khi bỏ ghim tin nhắn trong Group {group_id}: {e}')
             return False

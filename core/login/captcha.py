@@ -36,7 +36,7 @@ def solve_captcha_img(bg_png: bytes, slice_png: bytes, top: int) -> Tuple[int, f
 
 def captcha_flow(captcha_session: str, zcid: str='') -> Optional[str]:
     if not captcha_session:
-        logger.warning('[!] captcha_session rỗng, không thể tải challenge.')
+        logger.warning('captcha_session rỗng, không thể tải challenge.')
         return None
     gen_url = f'{ZMCAP_URL}/api/slide-captcha-gen?session={captcha_session}'
     cmd = ['curl', '-sS', '-m', '15', gen_url]
@@ -46,30 +46,28 @@ def captcha_flow(captcha_session: str, zcid: str='') -> Optional[str]:
     except Exception:
         r = {'raw': rr.stdout[:200], 'error_code': -1}
     if r.get('error_code') != 0:
-        logger.error(f'[!] Captcha Gen thất bại: {json.dumps(r)[:150]}')
+        logger.error(f'Captcha Gen thất bại: {json.dumps(r)[:150]}')
         return None
     d = r.get('data') or {}
     bg_b64 = d.get('bg', '').split(',', 1)[-1]
     slice_b64 = d.get('slice', '').split(',', 1)[-1]
     top = int(d.get('top', 0))
     if not bg_b64 or not slice_b64:
-        logger.error('[!] Không nhận được dữ liệu ảnh captcha.')
+        logger.error('Không nhận được dữ liệu ảnh captcha.')
         return None
     bg_png = base64.b64decode(bg_b64)
     slice_png = base64.b64decode(slice_b64)
     left, conf = solve_captcha_img(bg_png, slice_png, top)
-    logger.info(f'[*] Slide Captcha: top={top}, left={left}, correlation={conf:.3f}')
-    print(f'    🧩 Slide Captcha: top={top} | left={left} | độ khớp={conf:.3f}')
+    logger.info(f'Slide Captcha: top={top}, left={left}, correlation={conf:.3f}')
     start = int(time.time() * 1000)
     body = urllib.parse.urlencode({'left': left, 'startTime': start, 'stopTime': start + 2200 + left % 700})
     verify_url = f'{ZMCAP_URL}/api/slide-captcha-verify?session={captcha_session}'
     r2 = http_post_json_curl(verify_url, body=body, zcid=zcid)
     if r2.get('error_code') != 0:
-        logger.error(f'[!] Captcha Verify thất bại: {json.dumps(r2)[:150]}')
+        logger.error(f'Captcha Verify thất bại: {json.dumps(r2)[:150]}')
         return None
     token = (r2.get('data') or {}).get('captchaToken', '')
     if token:
-        logger.info(f'[✔] Đã nhận captchaToken thành công: {token[:36]}...')
-        print(f'    🏆 captchaToken: {token[:36]}...')
+        logger.info(f'Đã nhận captchaToken thành công: {token[:36]}...')
         return token
     return None

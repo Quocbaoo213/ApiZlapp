@@ -166,7 +166,7 @@ class GroupInfoAPI(BaseAPI):
         if desc:
             lines.append(f'📝 Giới thiệu: {desc}')
         if warning_text:
-            lines.append(f'⚠️ Cảnh báo: {warning_text}')
+            lines.append(f' Cảnh báo: {warning_text}')
         if requires_approval:
             lines.append(f'🔒 Chế độ duyệt: Cần phê duyệt' + (f" (Câu hỏi: '{question}')" if question else ''))
         else:

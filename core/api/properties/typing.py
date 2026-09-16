@@ -11,5 +11,5 @@ class TypingAPI(BaseAPI):
         try:
             return self._socket.send_typing_notification(target_id=int(thread_id), is_group=is_group)
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi typing notification tới {thread_id}: {e}')
+            logger.error(f'Lỗi gửi typing notification tới {thread_id}: {e}')
             return False

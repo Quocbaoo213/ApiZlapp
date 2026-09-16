@@ -21,5 +21,5 @@ class SendTypingActionMixin:
             self.last_traffic = time.time()
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi typing: {e}')
+            logger.error(f'Lỗi gửi typing: {e}')
             return False

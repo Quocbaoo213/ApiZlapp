@@ -16,7 +16,7 @@ class DisbandAPI(BaseAPI):
                 return bool(res if isinstance(res, bool) else res.get('sent', False) if isinstance(res, dict) else bool(res))
             return False
         except Exception as e:
-            logger.error(f'[!] Lỗi giải tán nhóm {group_id}: {e}')
+            logger.error(f'Lỗi giải tán nhóm {group_id}: {e}')
             return False
 
     def send_group_event_1705(self, group_id: Union[int, str], owner_uid: int=0) -> bool:
@@ -30,7 +30,7 @@ class DisbandAPI(BaseAPI):
                 return bool(res.get('sent', False)) if isinstance(res, dict) else bool(res)
             return False
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi event 1705 nhóm {group_id}: {e}')
+            logger.error(f'Lỗi gửi event 1705 nhóm {group_id}: {e}')
             return False
     disband_group = disband_group_242
     disband = disband_group_242

@@ -22,7 +22,7 @@ class SendImageAPI(BaseAPI):
                 total_size = total_size or sz
             return self._socket.send_photo(target_id=t_id, photo_url_or_path=photo_url_or_path, is_group=is_group, caption=caption, title=title, description=description, width=width, height=height, total_size=total_size, thumb_url=thumb_url, hd_url=hd_url, ttl=ttl, quote_data=quote_data, native=native, sub_type=sub_type, is_original=is_original)
         except Exception as e:
-            logger.error(f'[!] Lỗi khi gửi ảnh tới {t_id}: {e}')
+            logger.error(f'Lỗi khi gửi ảnh tới {t_id}: {e}')
             return False
 
     def send_group_photo(self, group_id: Union[int, str], photo_url_or_path: str, caption: str='', **kwargs) -> bool:

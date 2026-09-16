@@ -12,7 +12,7 @@ class BlockUserAPI(BaseAPI):
         try:
             return self._socket.block_user(target_uid=target_uid, is_block=is_block)
         except Exception as e:
-            logger.error(f'[!] Lỗi chặn user {target_uid}: {e}')
+            logger.error(f'Lỗi chặn user {target_uid}: {e}')
             return False
 
     def unblock_user(self, target_uid: Union[int, str]) -> bool:
@@ -22,5 +22,5 @@ class BlockUserAPI(BaseAPI):
         try:
             return self._socket.unblock_user(target_uid=target_uid)
         except Exception as e:
-            logger.error(f'[!] Lỗi bỏ chặn user {target_uid}: {e}')
+            logger.error(f'Lỗi bỏ chặn user {target_uid}: {e}')
             return False

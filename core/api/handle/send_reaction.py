@@ -17,5 +17,5 @@ class SendReactionAPI(BaseAPI):
         try:
             return self._socket.send_reaction(target_id=t_id, cli_msg_id=cmsg, global_msg_id=gmsg, icon=icon_str, is_group=is_group)
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi socket reaction: {e}')
+            logger.error(f'Lỗi gửi socket reaction: {e}')
             return False

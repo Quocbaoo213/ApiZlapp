@@ -12,7 +12,7 @@ class PinAPI(BaseAPI):
         try:
             return self._socket.pin_message(group_id=int(group_id), title=title, cli_msg_id=int(cli_msg_id or 0), global_msg_id=int(global_msg_id or 0), sender_name=sender_name)
         except Exception as e:
-            logger.error(f'[!] Lỗi khi ghim tin nhắn trong Group {group_id}: {e}')
+            logger.error(f'Lỗi khi ghim tin nhắn trong Group {group_id}: {e}')
             return False
 
     def get_pinned_topics(self, group_id: Union[int, str]) -> Dict[str, Any]:
@@ -23,5 +23,5 @@ class PinAPI(BaseAPI):
             res = self._socket.fetch_pinned_topics(group_id=int(group_id), wait_response=True)
             return res if isinstance(res, dict) else {'success': bool(res)}
         except Exception as e:
-            logger.error(f'[!] Lỗi lấy danh sách bài ghim: {e}')
+            logger.error(f'Lỗi lấy danh sách bài ghim: {e}')
             return {'success': False, 'error': str(e)}

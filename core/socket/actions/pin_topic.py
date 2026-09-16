@@ -17,10 +17,10 @@ class PinTopicActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'[✔] Đã gửi yêu cầu ghim tin nhắn (GID={group_id}, MsgID={global_msg_id or cli_msg_id}) qua Socket (CMD 1752 SUB 2)')
+            logger.info(f'Đã gửi yêu cầu ghim tin nhắn (GID={group_id}, MsgID={global_msg_id or cli_msg_id}) qua Socket (CMD 1752 SUB 2)')
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi ghim tin nhắn: {e}')
+            logger.error(f'Lỗi ghim tin nhắn: {e}')
             return False
 
     def unpin_message(self, group_id: int | str, topic_id: int=0, global_msg_id: int=0, cli_msg_id: int=0) -> bool:
@@ -36,10 +36,10 @@ class PinTopicActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'[✔] Đã gửi yêu cầu bỏ ghim tin nhắn (GID={gid}, TopicID={tid}) qua Socket (CMD 1708 SUB 0)')
+            logger.info(f'Đã gửi yêu cầu bỏ ghim tin nhắn (GID={gid}, TopicID={tid}) qua Socket (CMD 1708 SUB 0)')
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi bỏ ghim tin nhắn: {e}')
+            logger.error(f'Lỗi bỏ ghim tin nhắn: {e}')
             return False
 
     def fetch_pinned_topics(self, group_id: int | str, wait_response: bool=True, timeout: float=3.0) -> Union[bool, Dict[str, Any]]:
@@ -58,11 +58,11 @@ class PinTopicActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'[*] Đã gửi yêu cầu lấy danh sách ghim nhóm {gid} qua Socket (CMD 1703 SUB 0)')
+            logger.info(f'Đã gửi yêu cầu lấy danh sách ghim nhóm {gid} qua Socket (CMD 1703 SUB 0)')
             if not wait_response:
                 return True
             time.sleep(min(timeout, 0.5))
             return {'sent': True, 'group_id': gid, 'status': 'sent'}
         except Exception as e:
-            logger.error(f'[!] Lỗi lấy danh sách tin nhắn ghim: {e}')
+            logger.error(f'Lỗi lấy danh sách tin nhắn ghim: {e}')
             return {'sent': False, 'error': str(e)} if wait_response else False

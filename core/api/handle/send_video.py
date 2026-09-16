@@ -23,7 +23,7 @@ class SendVideoAPI(BaseAPI):
                 total_size = total_size or sz
             return self._socket.send_video(target_id=t_id, video_url_or_path=video_url_or_path, is_group=is_group, caption=caption, title=title, description=description, thumb_url=thumb_url, width=width, height=height, duration_ms=duration_ms, total_size=total_size, ttl=ttl, quote_data=quote_data, native=native, sub_type=sub_type)
         except Exception as e:
-            logger.error(f'[!] Lỗi khi gửi video tới {t_id}: {e}')
+            logger.error(f'Lỗi khi gửi video tới {t_id}: {e}')
             return False
 
     def send_group_video(self, group_id: Union[int, str], video_url_or_path: str, caption: str='', **kwargs) -> bool:

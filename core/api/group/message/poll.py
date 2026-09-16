@@ -12,5 +12,5 @@ class PollAPI(BaseAPI):
         try:
             return self._socket.create_poll(group_id=int(group_id), question=question, options=options)
         except Exception as e:
-            logger.error(f'[!] Lỗi khi tạo bình chọn trong Group {group_id}: {e}')
+            logger.error(f'Lỗi khi tạo bình chọn trong Group {group_id}: {e}')
             return False

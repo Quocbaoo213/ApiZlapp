@@ -22,5 +22,5 @@ class SendReactionActionMixin:
             self.last_traffic = time.time()
             return True
         except Exception as e:
-            logger.error(f'[!] Lỗi gửi reaction: {e}')
+            logger.error(f'Lỗi gửi reaction: {e}')
             return False
