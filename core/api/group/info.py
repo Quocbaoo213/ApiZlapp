@@ -1,14 +1,20 @@
 import re
 import json
+import time
 import logging
 import urllib.request
 import urllib.parse
-from typing import Union, Optional, Tuple, Dict, Any
+from typing import Union, Optional, Tuple, Dict, Any, List
 from core.api.common import BaseAPI
 from core.utils.helpers import sign_params, API_KEY, CLIENT_TYPE, CLIENT_VERSION, USER_AGENT
 logger = logging.getLogger('core.api.group.info')
 
 class GroupInfoAPI(BaseAPI):
+
+    def __init__(self, session_path: Optional[Union[str, Dict[str, Any]]]=None, socket_client=None):
+        super().__init__(session_path=session_path, socket_client=socket_client)
+        self._groups_cache: List[Dict[str, Any]] = []
+        self._last_groups_fetch: float = 0.0
 
     @staticmethod
     def parse_group_target(target: Union[str, int]) -> Tuple[str, Optional[int], Optional[str]]:
@@ -150,28 +156,112 @@ class GroupInfoAPI(BaseAPI):
         warning_text = http_data.get('warningText') or http_data.get('warning_text') or ''
         friends_in_group = http_data.get('friendsInGroup') or http_data.get('friends_in_group') or []
         type_str = 'Cộng đồng' if is_community else 'Nhóm'
-        lines = [f'🏷️ [{type_str.upper()} ZALO] {name}', f'🔗 Liên kết: {link_full}']
+        lines = [f'[{type_str.upper()} ZALO] {name}', f'Liên kết: {link_full}']
         if res_gid:
-            lines.append(f'🆔 Group ID: {res_gid}')
+            lines.append(f'Group ID: {res_gid}')
         if creator_name:
-            lines.append(f'👑 {type_str} của: {creator_name}' + (f' (UID: {creator_id})' if creator_id else ''))
+            lines.append(f'{type_str} của: {creator_name}' + (f' (UID: {creator_id})' if creator_id else ''))
         if created_time_str:
-            lines.append(f'📅 {created_time_str}' + (f' ({created_date_str})' if created_date_str else ''))
+            lines.append(f'Tạo lúc: {created_time_str}' + (f' ({created_date_str})' if created_date_str else ''))
         elif created_date_str:
-            lines.append(f'📅 Đã tạo ngày: {created_date_str}')
+            lines.append(f'Đã tạo ngày: {created_date_str}')
         if total_member:
-            lines.append(f'👥 Số thành viên: {total_member}')
+            lines.append(f'Số thành viên: {total_member}')
         if friends_in_group:
-            lines.append(f'🤝 Bạn trong nhóm: {len(friends_in_group)} bạn')
+            lines.append(f'Bạn bè trong nhóm: {len(friends_in_group)} bạn')
         if desc:
-            lines.append(f'📝 Giới thiệu: {desc}')
+            lines.append(f'Giới thiệu: {desc}')
         if warning_text:
-            lines.append(f' Cảnh báo: {warning_text}')
+            lines.append(f'Cảnh báo: {warning_text}')
         if requires_approval:
-            lines.append(f'🔒 Chế độ duyệt: Cần phê duyệt' + (f" (Câu hỏi: '{question}')" if question else ''))
+            lines.append(f'Chế độ duyệt: Cần phê duyệt' + (f" (Câu hỏi: '{question}')" if question else ''))
         else:
-            lines.append(f'🔓 Chế độ duyệt: Tham gia tự do')
-        lines.append(f'👉 Thao tác: [THAM GIA]')
+            lines.append(f'Chế độ duyệt: Tham gia tự do')
+        lines.append(f'Thao tác: [THAM GIA]')
         formatted_preview = '\n'.join(lines)
         return {'success': bool(res_gid or http_data or (sock_res and sock_res.get('sent'))), 'group_id': int(res_gid) if res_gid else None, 'name': name, 'desc': desc, 'avatar': avatar, 'creator_name': creator_name, 'creator_id': creator_id, 'created_time': created_time, 'created_time_str': created_time_str, 'created_date_str': created_date_str, 'total_member': total_member, 'friends_in_group': friends_in_group, 'warning_text': warning_text, 'is_community': is_community, 'requires_approval': requires_approval, 'question': question, 'link_url': link_full, 'link_code': link_code, 'formatted_preview': formatted_preview, 'raw_data': http_data or sock_res}
     get_group_preview = preview_group_link
+
+    def get_group_list(self, page: int=1, last_group_id: Union[int, str]=0, avatar_size: int=160) -> Optional[Dict[str, Any]]:
+        sess = self._load_session()
+        if not sess:
+            return None
+        p: Dict[str, Any] = {
+            'api_key': API_KEY,
+            'session_key': sess['session_key'],
+            'sign': sess['sign'],
+            'ts': str(int(time.time())),
+            'clientType': CLIENT_TYPE,
+            'clientVersion': CLIENT_VERSION,
+            'client_type': CLIENT_TYPE,
+            'client_version': sess.get('app_version') or '23.08.01',
+            'last_group_id': str(last_group_id or 0),
+            'avatar_size': str(avatar_size),
+            'page': str(page)
+        }
+        p['sig'] = sign_params(p)
+        try:
+            url = f'https://group.api.zaloapp.com/group/list?{urllib.parse.urlencode(p)}'
+            req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT, 'Accept': 'application/json'})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status == 200:
+                    return json.loads(resp.read().decode('utf-8'))
+        except Exception as e:
+            logger.warning(f'Lỗi tải danh sách nhóm trang {page}: {e}')
+        return None
+
+    def get_all_groups(self, force_refresh: bool=False) -> List[Dict[str, Any]]:
+        now = time.time()
+        if not force_refresh and self._groups_cache and (now - self._last_groups_fetch < 300):
+            return list(self._groups_cache)
+        all_groups: List[Dict[str, Any]] = []
+        page = 1
+        last_group_id: Union[int, str] = 0
+        while True:
+            resp = self.get_group_list(page=page, last_group_id=last_group_id)
+            if not resp or resp.get('error_code') != 0:
+                break
+            data = resp.get('data') or {}
+            groups = data.get('data') or data.get('groups') or []
+            all_groups.extend(groups)
+            has_more = bool(data.get('hasMoreList', False))
+            if not has_more or not groups:
+                break
+            page += 1
+            last_group_id = data.get('lastGroupId') or groups[-1].get('groupId') or 0
+        self._groups_cache = all_groups
+        self._last_groups_fetch = now
+        return all_groups
+
+    def get_group_detail(self, group_id: Union[int, str], force_refresh: bool=False) -> Optional[Dict[str, Any]]:
+        try:
+            gid_int = int(group_id)
+        except (ValueError, TypeError):
+            return None
+        groups = self.get_all_groups(force_refresh=force_refresh)
+        for g in groups:
+            if int(g.get('groupId', 0)) == gid_int:
+                return g
+        return None
+
+    @staticmethod
+    def format_group_item(group_data: Dict[str, Any]) -> str:
+        gid = group_data.get('groupId', 0)
+        name = group_data.get('name') or f'Nhóm {gid}'
+        total_mems = group_data.get('totalMembers', 0)
+        creator_id = group_data.get('creatorId', 0)
+        admins = group_data.get('admins') or []
+        admin_names = [a.get('dName', str(a.get('id', ''))) for a in admins if isinstance(a, dict)]
+        link_info = (group_data.get('extraInfo') or {}).get('groupLinkInfo') or {}
+        link_url = link_info.get('link', '')
+        lines = [
+            f'[THÔNG TIN NHÓM] {name}',
+            f'• Group ID: {gid}',
+            f'• Thành viên: {total_mems}',
+            f'• Người tạo: UID {creator_id}'
+        ]
+        if admin_names:
+            lines.append(f'• Phó nhóm: {", ".join(admin_names)}')
+        if link_url:
+            lines.append(f'• Liên kết: {link_url}')
+        return '\n'.join(lines)

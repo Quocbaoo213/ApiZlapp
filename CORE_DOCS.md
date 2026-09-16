@@ -133,12 +133,16 @@ Cấu trúc module của thư viện `core/` được thiết kế theo chuẩn 
 
 #### 📄 `core/api/group/info.py` (177 dòng)
 **Danh sách Class:**
-- `class GroupInfoAPI` (Dòng 11): Không có docstring
-  - `def parse_group_target(target)` (Dòng 14)
-  - `def get_group_info_by_link(self, link_or_code)` (Dòng 32)
-  - `def resolve_group_id_from_link(self, link_or_code)` (Dòng 50)
-  - `def format_relative_created_time(created_time_ms)` (Dòng 84)
-  - `def preview_group_link(self, link_or_code)` (Dòng 111)
+- `class GroupInfoAPI` (Dòng 11): API tra cứu và quản lý thông tin nhóm qua REST API và Socket
+  - `def parse_group_target(target)` (Dòng 20): Phân giải target chuỗi/số thành kiểu target ('id' hoặc 'link'), group ID, và link code
+  - `def get_group_info_by_link(self, link_or_code)` (Dòng 38): Tra cứu thông tin nhóm từ liên kết hoặc link code qua POST /group/info
+  - `def resolve_group_id_from_link(self, link_or_code)` (Dòng 56): Phân giải Group ID số nguyên từ liên kết hoặc cache socket
+  - `def format_relative_created_time(created_time_ms)` (Dòng 90): Định dạng thời gian tạo nhóm tương đối (hôm nay, x ngày trước, x tháng trước)
+  - `def preview_group_link(self, link_or_code)` (Dòng 117): Xem trước thông tin chi tiết của nhóm từ liên kết
+  - `def get_group_list(self, page, last_group_id, avatar_size)` (Dòng 187): Lấy danh sách nhóm phân trang từ endpoint POST https://group.api.zaloapp.com/group/list
+  - `def get_all_groups(self, force_refresh)` (Dòng 215): Tự động phân trang lấy toàn bộ danh sách nhóm người dùng đang tham gia và lưu cache
+  - `def get_group_detail(self, group_id, force_refresh)` (Dòng 238): Lấy chi tiết thông tin 1 nhóm theo group_id
+  - `def format_group_item(group_data)` (Dòng 248): Định dạng thông tin nhóm thành chuỗi văn bản sạch, hiển thị tên, ID, thành viên, phó nhóm, link
 
 ---
 

@@ -1138,10 +1138,3 @@ def parse_delivery_receipt_202(params_bytes: bytes) -> dict:
         except Exception:
             pass
     return out
-try:
-    from .handshake import build_prov_frame, build_init_frames, send_init_frames
-except (ImportError, ValueError):
-    try:
-        from core.socket.handshake import build_prov_frame, build_init_frames, send_init_frames
-    except (ImportError, ValueError):
-        from handshake import build_prov_frame, build_init_frames, send_init_frames

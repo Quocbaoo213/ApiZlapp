@@ -191,6 +191,15 @@ class ZaloClient:
     def preview_group_link(self, link_or_code: str) -> Dict[str, Any]:
         return self.group_info.preview_group_link(link_or_code=link_or_code)
 
+    def get_group_list(self, page: int=1, last_group_id: Union[int, str]=0, avatar_size: int=160) -> Optional[Dict[str, Any]]:
+        return self.group_info.get_group_list(page=page, last_group_id=last_group_id, avatar_size=avatar_size)
+
+    def get_all_groups(self, force_refresh: bool=False) -> List[Dict[str, Any]]:
+        return self.group_info.get_all_groups(force_refresh=force_refresh)
+
+    def get_group_detail(self, group_id: Union[int, str], force_refresh: bool=False) -> Optional[Dict[str, Any]]:
+        return self.group_info.get_group_detail(group_id=group_id, force_refresh=force_refresh)
+
     def create_poll(self, group_id: int, question: str, options: List[str]) -> bool:
         return self.group_message.create_poll(group_id=group_id, question=question, options=options)
 
