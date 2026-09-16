@@ -12,7 +12,7 @@ Dựa trên kiến trúc đảo ngược từ zalo_login_v10.py:
 
 import sys
 from core.login.__main__ import main
-from core.login import ZaloLoginClient
+from core.login.client import ZaloLoginClient
 from core.login.device import HAR_LONG as DEFAULT_DEVICE_PARAMS
 
 __all__ = ["main", "ZaloLoginClient", "DEFAULT_DEVICE_PARAMS"]

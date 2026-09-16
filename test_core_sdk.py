@@ -11,26 +11,17 @@ import time
 import unittest
 from unittest.mock import MagicMock, patch
 
-from core import (
-    ZaloClient,
-    ZaloLoginClient,
-    DeviceProfile,
-    SessionManager,
-    ThreadType,
-    Gender,
-    MessageType,
-    ReactionIcon,
-    UserProfile,
-    Message,
-    Quote,
-    UserAPI,
-    MessageAPI,
-    GroupAPI,
-    sign_params,
-    parse_ttl_duration,
-    utf16_len,
-    extract_target_uid
-)
+from core.client import ZaloClient
+from core.login.client import ZaloLoginClient
+from core.login.device import DeviceProfile
+from core.login.session import SessionManager
+from core.models.enums import ThreadType, Gender, MessageType, ReactionIcon
+from core.models.user import UserProfile
+from core.models.message import Message, Quote
+from core.api.user import UserAPI
+from core.api.message import MessageAPI
+from core.api.group.api import GroupAPI
+from core.utils.helpers import sign_params, parse_ttl_duration, utf16_len, extract_target_uid
 
 
 class TestCoreSDK(unittest.TestCase):

@@ -19,18 +19,18 @@ import logging
 import time
 from typing import Optional, Callable, Dict, Any, List, Union
 
-from core.socket import ZaloSocketClient, DEFAULT_SERVERS
-from core.models import ThreadType, UserProfile, Message, Quote, ReactionIcon
-from core.api import (
-    SendAPI,
-    GroupAPI,
-    GroupActionAPI,
-    GroupMessageAPI,
-    GroupInfoAPI,
-    PropertiesAPI,
-    UserAPI,
-    MessageAPI
-)
+from core.socket.client import ZaloSocketClient, DEFAULT_SERVERS
+from core.models.enums import ThreadType, ReactionIcon
+from core.models.user import UserProfile
+from core.models.message import Message, Quote
+from core.api.handle.api import SendAPI
+from core.api.group.api import GroupAPI
+from core.api.group.action.api import GroupActionAPI
+from core.api.group.message.api import GroupMessageAPI
+from core.api.group.info import GroupInfoAPI
+from core.api.properties.api import PropertiesAPI
+from core.api.user import UserAPI
+from core.api.message import MessageAPI
 
 logger = logging.getLogger("core.client")
 

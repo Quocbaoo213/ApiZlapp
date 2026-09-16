@@ -16,7 +16,8 @@ from core.login.device import (
 )
 from core.login.probe import build_p110, calc_cs
 from core.login.session import extract_all, SessionManager
-from core.login import PasswordAuth, ZaloLoginClient
+from core.login.password import PasswordAuth
+from core.login.client import ZaloLoginClient
 
 
 class TestLoginModuleV10(unittest.TestCase):

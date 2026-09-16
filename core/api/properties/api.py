@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-core/api/properties/__init__.py — PropertiesAPI: Quản lý trạng thái và thuộc tính tin nhắn / phiên.
+core/api/properties/api.py — PropertiesAPI: Quản lý trạng thái và thuộc tính tin nhắn / phiên.
 Tương ứng Go reference: internal/api/properties/
 """
 

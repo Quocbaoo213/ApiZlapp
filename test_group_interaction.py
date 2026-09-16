@@ -9,7 +9,7 @@ import json
 import time
 
 from core.models.enums import ReactionIcon
-from core.api.group import GroupAPI
+from core.api.group.api import GroupAPI
 from protocol import (
     build_reaction_packet, build_pin_topic_packet,
     build_unpin_topic_packet, build_disband_group_packet
@@ -398,7 +398,7 @@ class TestBotEngineInteractions(unittest.TestCase):
         self.mock_client.is_connected = True
         self.bot = ZaloBotEngine(self.mock_client, prefix="/", rate_limit_sec=0.0)
 
-    @patch("core.api.group.GroupAPI.send_reaction")
+    @patch("core.api.group.api.GroupAPI.send_reaction")
     def test_bot_executes_react_action(self, mock_send_reaction):
         mock_send_reaction.return_value = True
         event = {
@@ -424,7 +424,7 @@ class TestBotEngineInteractions(unittest.TestCase):
             is_group=True
         )
 
-    @patch("core.api.group.GroupAPI.send_reaction")
+    @patch("core.api.group.api.GroupAPI.send_reaction")
     def test_bot_executes_custom_emoji_react(self, mock_send_reaction):
         mock_send_reaction.return_value = True
         event = {
@@ -450,7 +450,7 @@ class TestBotEngineInteractions(unittest.TestCase):
             is_group=True
         )
 
-    @patch("core.api.group.GroupAPI.send_reaction")
+    @patch("core.api.group.api.GroupAPI.send_reaction")
     def test_bot_executes_custom_text_react(self, mock_send_reaction):
         mock_send_reaction.return_value = True
         event = {
@@ -476,7 +476,7 @@ class TestBotEngineInteractions(unittest.TestCase):
             is_group=True
         )
 
-    @patch("core.api.group.GroupAPI.pin_message")
+    @patch("core.api.group.api.GroupAPI.pin_message")
     def test_bot_executes_pin_action(self, mock_pin_message):
         mock_pin_message.return_value = True
         event = {
@@ -496,7 +496,7 @@ class TestBotEngineInteractions(unittest.TestCase):
         self.bot._process_event(event)
         mock_pin_message.assert_called_once()
 
-    @patch("core.api.group.GroupAPI.kick_member")
+    @patch("core.api.group.api.GroupAPI.kick_member")
     def test_bot_executes_kick_action(self, mock_kick_member):
         mock_kick_member.return_value = True
         event = {
@@ -515,7 +515,7 @@ class TestBotEngineInteractions(unittest.TestCase):
             is_block=False
         )
 
-    @patch("core.api.group.GroupAPI.kick_member")
+    @patch("core.api.group.api.GroupAPI.kick_member")
     def test_bot_executes_ban_action(self, mock_kick_member):
         mock_kick_member.return_value = True
         event = {
@@ -534,7 +534,7 @@ class TestBotEngineInteractions(unittest.TestCase):
             is_block=True
         )
 
-    @patch("core.api.group.GroupAPI.join_group")
+    @patch("core.api.group.api.GroupAPI.join_group")
     def test_bot_executes_join_action(self, mock_join_group):
         mock_join_group.return_value = {"success": True, "status": "OK"}
         event = {
@@ -793,7 +793,7 @@ class TestBotEngineInteractions(unittest.TestCase):
         resp_unpin = generate_bot_response("/unpin", group_id=686355764, from_uid=999)
         self.assertIn("__ACTION_UNPIN__", resp_unpin)
 
-    @patch("core.api.group.GroupAPI.create_poll")
+    @patch("core.api.group.api.GroupAPI.create_poll")
     def test_bot_executes_poll_action(self, mock_create_poll):
         mock_create_poll.return_value = True
         event = {
@@ -812,7 +812,7 @@ class TestBotEngineInteractions(unittest.TestCase):
             options=["8h", "9h", "10h"]
         )
 
-    @patch("core.api.group.GroupAPI.leave_group")
+    @patch("core.api.group.api.GroupAPI.leave_group")
     def test_bot_executes_leave_action(self, mock_leave_group):
         mock_leave_group.return_value = True
         event = {
@@ -827,7 +827,7 @@ class TestBotEngineInteractions(unittest.TestCase):
         self.bot._process_event(event)
         mock_leave_group.assert_called_once_with(group_id=686355764)
 
-    @patch("core.api.group.GroupAPI.block_user")
+    @patch("core.api.group.api.GroupAPI.block_user")
     def test_bot_executes_block_action(self, mock_block_user):
         mock_block_user.return_value = True
         event = {

@@ -12,7 +12,10 @@ Ví dụ về quy trình xác thực và quản lý phiên làm việc (Session 
 
 import os
 import json
-from core import ZaloLoginClient, SessionManager, ZaloClient, ThreadType
+from core.login.client import ZaloLoginClient
+from core.login.session import SessionManager
+from core.client import ZaloClient
+from core.models.enums import ThreadType
 
 
 def login_with_phone_password():

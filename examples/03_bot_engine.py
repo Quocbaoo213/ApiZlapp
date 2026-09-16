@@ -24,7 +24,10 @@ import math
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 
-from core import ZaloClient, Message, ThreadType, extract_target_uid
+from core.client import ZaloClient
+from core.models.message import Message
+from core.models.enums import ThreadType
+from core.utils.helpers import extract_target_uid
 
 VN_TZ = timezone(timedelta(hours=7))
 

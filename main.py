@@ -24,22 +24,16 @@ from typing import Optional, Dict, Any, List, Tuple
 # Múi giờ Việt Nam (GMT+7)
 TZ_VN = timezone(timedelta(hours=7))
 
-from core import (
-    ZaloClient,
-    ZaloLoginClient,
-    ThreadType,
-    ReactionIcon,
-    UserProfile,
-    UserAPI,
-    GroupAPI,
-    MessageAPI,
-    SessionManager,
-    sign_params,
-    parse_ttl_duration,
-    utf16_len,
-    extract_target_uid
-)
-from core.socket import ZaloSocketClient, DEFAULT_SERVERS
+from core.client import ZaloClient
+from core.login.client import ZaloLoginClient
+from core.models.enums import ThreadType, ReactionIcon
+from core.models.user import UserProfile
+from core.api.user import UserAPI
+from core.api.group.api import GroupAPI
+from core.api.message import MessageAPI
+from core.login.session import SessionManager
+from core.utils.helpers import sign_params, parse_ttl_duration, utf16_len, extract_target_uid
+from core.socket.client import ZaloSocketClient, DEFAULT_SERVERS
 
 # Alias cho tương thích ngược
 ZaloUserInfoAPI = UserAPI
@@ -1773,7 +1767,7 @@ def main():
         logger.setLevel(logging.DEBUG)
 
     if args.login:
-        from core.login import ZaloLoginClient
+        from core.login.client import ZaloLoginClient
         phone = args.phone or input("📱 Nhập số điện thoại Zalo: ").strip()
         import getpass
         password = args.password or getpass.getpass("🔑 Nhập mật khẩu Zalo: ").strip()

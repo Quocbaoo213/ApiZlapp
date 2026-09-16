@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-core/api/group/message/__init__.py — GroupMessageAPI: Tổng hợp các tính năng bảng tin & tin nhắn nhóm.
+core/api/group/message/api.py — GroupMessageAPI: Tổng hợp các tính năng bảng tin & tin nhắn nhóm.
 Tương ứng Go reference: internal/api/group/message/
 """
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-core/api/group/__init__.py — GroupAPI: Tổng hợp tất cả các dịch vụ Nhóm (Action, Message Board, Info).
+core/api/group/api.py — GroupAPI: Tổng hợp tất cả các dịch vụ Nhóm (Action, Message Board, Info).
 Tương ứng Go reference: internal/api/group/
 """
 
-from core.api.group.action import GroupActionAPI
-from core.api.group.message import GroupMessageAPI
+from core.api.group.action.api import GroupActionAPI
+from core.api.group.message.api import GroupMessageAPI
 from core.api.group.info import GroupInfoAPI
 from core.api.handle.send_reaction import SendReactionAPI
 from core.api.handle.undo_message import UndoMessageAPI
@@ -42,4 +42,3 @@ __all__ = [
     "GroupMessageAPI",
     "GroupInfoAPI"
 ]
-

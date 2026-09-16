@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-core/login — Module Quản lý Xác thực, Đăng nhập & Khởi tạo Session Zalo qua HTTP/2 API.
+core/login/client.py — Module Quản lý Xác thực, Đăng nhập & Khởi tạo Session Zalo qua HTTP/2 API.
 Mô phỏng 100% quy trình đăng nhập zalo_login_v10.py.
 """
 
 from typing import Dict, Any, Optional, List
 
-from .device import (
+from core.login.device import (
     INIT_KEY,
     DEFAULT_API_KEY,
     DEFAULT_SECRET,
@@ -24,11 +24,11 @@ from .device import (
     key32_96,
     DeviceProfile
 )
-from .captcha import solve_captcha_img, captcha_flow
-from .two_factor import TwoFactorAuth, FriendAuth
-from .probe import probe_socket_authen, probe_now, build_p110, calc_cs
-from .session import extract_all, read_from_zaloprefs, save_session_file, SessionManager
-from .password import PasswordAuth, login
+from core.login.captcha import solve_captcha_img, captcha_flow
+from core.login.two_factor import TwoFactorAuth, FriendAuth
+from core.login.probe import probe_socket_authen, probe_now, build_p110, calc_cs
+from core.login.session import extract_all, read_from_zaloprefs, save_session_file, SessionManager
+from core.login.password import PasswordAuth, login
 
 
 class ZaloLoginClient:

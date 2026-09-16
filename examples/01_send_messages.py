@@ -12,7 +12,8 @@ Ví dụ cơ bản về gửi tin nhắn với Zalo SDK:
 """
 
 import time
-from core import ZaloClient, ThreadType, ReactionIcon
+from core.client import ZaloClient
+from core.models.enums import ThreadType, ReactionIcon
 
 
 def main():

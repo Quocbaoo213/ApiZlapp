@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-core/api/handle/__init__.py — SendAPI: Tổng hợp các tính năng gửi tin nhắn và tương tác.
+core/api/handle/api.py — SendAPI: Tổng hợp các tính năng gửi tin nhắn và tương tác.
 Tương ứng Go reference: internal/api/handle/
 """
 

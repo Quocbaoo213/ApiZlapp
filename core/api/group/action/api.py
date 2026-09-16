@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-core/api/group/action/__init__.py — GroupActionAPI: Tổng hợp các thao tác quản trị nhóm.
+core/api/group/action/api.py — GroupActionAPI: Tổng hợp các thao tác quản trị nhóm.
 Tương ứng Go reference: internal/api/group/action/
 """
 

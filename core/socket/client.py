@@ -43,19 +43,17 @@ from .protocol import (
 from .handshake import (
     build_prov_frame, send_init_frames
 )
-from .actions import (
-    SendMessageActionMixin,
-    SendImageActionMixin,
-    SendVideoActionMixin,
-    SendDoodleActionMixin,
-    SendReactionActionMixin,
-    SendTypingActionMixin,
-    PinTopicActionMixin,
-    PollActionMixin,
-    UndoMessageActionMixin,
-    GroupActionsMixin,
-    BlockUserActionMixin
-)
+from core.socket.actions.send_message import SendMessageActionMixin
+from core.socket.actions.send_image import SendImageActionMixin
+from core.socket.actions.send_video import SendVideoActionMixin
+from core.socket.actions.send_doodle import SendDoodleActionMixin
+from core.socket.actions.send_reaction import SendReactionActionMixin
+from core.socket.actions.send_typing import SendTypingActionMixin
+from core.socket.actions.pin_topic import PinTopicActionMixin
+from core.socket.actions.poll import PollActionMixin
+from core.socket.actions.undo_message import UndoMessageActionMixin
+from core.socket.actions.group_actions import GroupActionsMixin
+from core.socket.actions.block_user import BlockUserActionMixin
 
 logger = logging.getLogger("core.socket.client")
 

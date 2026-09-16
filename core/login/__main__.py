@@ -15,7 +15,8 @@ import sys
 import getpass
 import argparse
 import logging
-from core.login import PasswordAuth, save_session_file, read_from_zaloprefs
+from core.login.password import PasswordAuth
+from core.login.session import save_session_file, read_from_zaloprefs
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

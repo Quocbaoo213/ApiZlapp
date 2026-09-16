@@ -14,7 +14,7 @@ Ví dụ về quản lý và điều hành nhóm chat Zalo toàn diện:
 """
 
 import time
-from core import ZaloClient
+from core.client import ZaloClient
 
 
 def main():
