@@ -154,6 +154,83 @@ class UserAPI:
         except Exception as ex:
             logger.warning(f'discoverContact lỗi: {ex}')
             return None
+
+    def remove_friend(self, user_id: Union[int, str]) -> Optional[Dict[str, Any]]:
+        try:
+            u_int = int(user_id)
+        except (ValueError, TypeError):
+            return None
+        res = self._call_api('https://friend.talk.zing.vn/api/friend/remove', {'userId': str(u_int)})
+        if res and res.get('error_code') == 0:
+            if u_int in self._cache:
+                cached_at, data = self._cache[u_int]
+                data['isFr'] = 0
+                data['is_friend'] = False
+                self._cache[u_int] = (cached_at, data)
+        return res
+
+    def get_friend_list(self, page: int=1, count: int=50) -> Optional[Dict[str, Any]]:
+        return self._call_api('https://friend.talk.zing.vn/api/friend/getlist', {'page': str(page), 'count': str(count)})
+
+    def find_user_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
+        clean_phone = ''.join(c for c in phone if c.isdigit() or c == '+')
+        if not clean_phone:
+            return None
+        res = self.discover_contacts([clean_phone])
+        if not res or res.get('error_code') != 0:
+            return None
+        data = res.get('data') or {}
+        user_list = data.get('list') or []
+        if not user_list:
+            return None
+        user_item = user_list[0]
+        uid = user_item.get('userId') or user_item.get('uid')
+        if uid:
+            u_int = int(uid)
+            self.register_seen_user(u_int, display_name=user_item.get('displayName'), avatar=user_item.get('avatar'))
+            self._cache[u_int] = (time.time(), user_item)
+        return user_item
+
+    def send_friend_request(self, user_id: Union[int, str], message: str='') -> Optional[Dict[str, Any]]:
+        try:
+            u_int = int(user_id)
+        except (ValueError, TypeError):
+            return None
+        params: Dict[str, Any] = {'userId': str(u_int)}
+        if message:
+            params['message'] = message
+            params['reason'] = message
+        res = self._call_api('https://friend.talk.zing.vn/api/friend/request', params)
+        if not res or res.get('error_code') != 0:
+            res = self._call_api('https://friend.talk.zing.vn/api/friend/add', params)
+        return res
+
+    def accept_friend_request(self, user_id: Union[int, str]) -> Optional[Dict[str, Any]]:
+        try:
+            u_int = int(user_id)
+        except (ValueError, TypeError):
+            return None
+        res = self._call_api('https://friend.talk.zing.vn/api/friend/accept', {'userId': str(u_int)})
+        if res and res.get('error_code') == 0:
+            if u_int in self._cache:
+                cached_at, data = self._cache[u_int]
+                data['isFr'] = 1
+                data['is_friend'] = True
+                self._cache[u_int] = (cached_at, data)
+        return res
+    accept_friend = accept_friend_request
+
+    def reject_friend_request(self, user_id: Union[int, str]) -> Optional[Dict[str, Any]]:
+        try:
+            u_int = int(user_id)
+        except (ValueError, TypeError):
+            return None
+        return self._call_api('https://friend.talk.zing.vn/api/friend/reject', {'userId': str(u_int)})
+    reject_friend = reject_friend_request
+
+    def get_friend_requests(self, page: int=1) -> Optional[Dict[str, Any]]:
+        return self._call_api('https://friend.talk.zing.vn/api/friend/getlistrequest', {'page': str(page)})
+
     get_info = get_user_profile
 
     @staticmethod

@@ -39,6 +39,7 @@ class ZaloClient:
         self.group_info = GroupInfoAPI(session_path=active_session_arg, socket_client=self._socket)
         self.properties = PropertiesAPI(session_path=active_session_arg, socket_client=self._socket)
         self.users = UserAPI(session_path=active_session_arg)
+        self.user = self.users
         self.messages = MessageAPI(self._socket)
         self.groups = self.group
 
@@ -199,6 +200,36 @@ class ZaloClient:
 
     def get_group_detail(self, group_id: Union[int, str], force_refresh: bool=False) -> Optional[Dict[str, Any]]:
         return self.group_info.get_group_detail(group_id=group_id, force_refresh=force_refresh)
+
+    def get_user_profile(self, user_id: Union[int, str], force_refresh: bool=False) -> Optional[UserProfile]:
+        return self.users.get_user_profile(target_uid=user_id, force_refresh=force_refresh)
+
+    def get_friends(self, force_refresh: bool=False) -> List[UserProfile]:
+        return self.users.get_all_friends(force_refresh=force_refresh)
+
+    def get_friend_list(self, page: int=1, count: int=50) -> Optional[Dict[str, Any]]:
+        return self.users.get_friend_list(page=page, count=count)
+
+    def remove_friend(self, user_id: Union[int, str]) -> Optional[Dict[str, Any]]:
+        return self.users.remove_friend(user_id=user_id)
+
+    def find_user_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
+        return self.users.find_user_by_phone(phone=phone)
+
+    def discover_contacts(self, phones: List[str]) -> Optional[Dict[str, Any]]:
+        return self.users.discover_contacts(phones=phones)
+
+    def send_friend_request(self, user_id: Union[int, str], message: str='') -> Optional[Dict[str, Any]]:
+        return self.users.send_friend_request(user_id=user_id, message=message)
+
+    def accept_friend_request(self, user_id: Union[int, str]) -> Optional[Dict[str, Any]]:
+        return self.users.accept_friend_request(user_id=user_id)
+
+    def reject_friend_request(self, user_id: Union[int, str]) -> Optional[Dict[str, Any]]:
+        return self.users.reject_friend_request(user_id=user_id)
+
+    def get_friend_requests(self, page: int=1) -> Optional[Dict[str, Any]]:
+        return self.users.get_friend_requests(page=page)
 
     def create_poll(self, group_id: int, question: str, options: List[str]) -> bool:
         return self.group_message.create_poll(group_id=group_id, question=question, options=options)

@@ -60,7 +60,20 @@ Cấu trúc module của thư viện `core/` được thiết kế theo chuẩn 
   - `def add_member(self, group_id, member_uids, is_invite)` (Dòng 185)
   - `def join_group(self, target, msg)` (Dòng 188)
   - `def preview_group_link(self, link_or_code)` (Dòng 191)
-  - `def create_poll(self, group_id, question, options)` (Dòng 194)
+  - `def get_group_list(self, page, last_group_id, avatar_size)` (Dòng 194): Lấy danh sách nhóm phân trang
+  - `def get_all_groups(self, force_refresh)` (Dòng 197): Tự động lấy tất cả nhóm đang tham gia
+  - `def get_group_detail(self, group_id, force_refresh)` (Dòng 200): Lấy chi tiết thông tin một nhóm theo ID
+  - `def get_user_profile(self, user_id, force_refresh)` (Dòng 203): Lấy thông tin chi tiết người dùng
+  - `def get_friends(self, force_refresh)` (Dòng 206): Lấy danh sách đối tượng bạn bè đầy đủ
+  - `def get_friend_list(self, page, count)` (Dòng 209): Lấy danh sách bạn bè phân trang từ server
+  - `def remove_friend(self, user_id)` (Dòng 212): Hủy kết bạn (unfriend)
+  - `def find_user_by_phone(self, phone)` (Dòng 215): Tìm kiếm tài khoản người dùng qua số điện thoại
+  - `def discover_contacts(self, phones)` (Dòng 218): Tra cứu danh bạ hàng loạt qua số điện thoại
+  - `def send_friend_request(self, user_id, message)` (Dòng 221): Gửi yêu cầu kết bạn kèm lời chào
+  - `def accept_friend_request(self, user_id)` (Dòng 224): Chấp nhận yêu cầu kết bạn
+  - `def reject_friend_request(self, user_id)` (Dòng 227): Từ chối yêu cầu kết bạn
+  - `def get_friend_requests(self, page)` (Dòng 230): Lấy danh sách lời mời kết bạn gửi đến
+  - `def create_poll(self, group_id, question, options)` (Dòng 233)
   - `def send_photo(self, target_id, photo_url_or_path, thread_type, caption, title, description, width, height, total_size, thumb_url, hd_url, ttl, quote_data, native, sub_type, is_original)` (Dòng 197)
   - `def send_group_photo(self, group_id, photo_url_or_path, caption)` (Dòng 200)
   - `def send_1to1_photo(self, to_uid, photo_url_or_path, caption)` (Dòng 203)
@@ -101,11 +114,11 @@ Cấu trúc module của thư viện `core/` được thiết kế theo chuẩn 
 
 ---
 
-#### 📄 `core/api/user.py` (238 dòng)
+#### 📄 `core/api/user.py` (316 dòng)
 **Hằng số / Opcodes chính:** `TZ_VN, CACHE_TTL_SECONDS`
 
 **Danh sách Class:**
-- `class UserAPI` (Dòng 15): Không có docstring
+- `class UserAPI` (Dòng 15): API tra cứu thông tin người dùng, quan hệ bạn bè và danh bạ qua REST API
   - `def __init__(self, session_path)` (Dòng 17)
   - `def _extract_session_fields(self, data)` (Dòng 24)
   - `def _load_session(self)` (Dòng 34)
@@ -115,8 +128,15 @@ Cấu trúc module của thư viện `core/` được thiết kế theo chuẩn 
   - `def get_user_profile(self, target_uid, force_refresh, fallback_name, fallback_avatar)` (Dòng 109)
   - `def get_all_friends(self, force_refresh)` (Dòng 132)
   - `def get_aliases(self)` (Dòng 141)
-  - `def discover_contacts(self, phones)` (Dòng 144)
-  - `def format_user_info(user_obj)` (Dòng 160)
+  - `def discover_contacts(self, phones)` (Dòng 144): Tra cứu hàng loạt thông tin tài khoản theo danh sách số điện thoại
+  - `def remove_friend(self, user_id)` (Dòng 158): Hủy kết bạn (unfriend) qua POST https://friend.talk.zing.vn/api/friend/remove và cập nhật cache nội bộ
+  - `def get_friend_list(self, page, count)` (Dòng 171): Lấy danh sách bạn bè phân trang từ https://friend.talk.zing.vn/api/friend/getlist
+  - `def find_user_by_phone(self, phone)` (Dòng 174): Tìm kiếm người dùng qua số điện thoại bằng discoverContact và tự động lưu vào seen/profile cache
+  - `def send_friend_request(self, user_id, message)` (Dòng 190): Gửi yêu cầu kết bạn kèm lời chào
+  - `def accept_friend_request(self, user_id)` (Dòng 204): Chấp nhận yêu cầu kết bạn đang chờ duyệt
+  - `def reject_friend_request(self, user_id)` (Dòng 219): Từ chối yêu cầu kết bạn
+  - `def get_friend_requests(self, page)` (Dòng 227): Lấy danh sách lời mời kết bạn gửi đến
+  - `def format_user_info(user_obj)` (Dòng 237): Định dạng thẻ thông tin người dùng chuẩn Zalo không emoji thừa
 
 ---
 
