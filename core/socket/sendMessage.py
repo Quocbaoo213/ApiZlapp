@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+core/socket/sendMessage.py — TCP Binary Protocol Builder & Handler cho Text / D3 Messages.
+"""
+
+from core.socket.protocol import (
+    build_group_message_packet,
+    build_1to1_message_packet,
+    build_d3_payload_group,
+    build_d3_payload_1to1,
+    build_group_message_packet as buildGroupMessagePacket,
+    build_1to1_message_packet as build1to1MessagePacket,
+    build_d3_payload_group as buildD3PayloadGroup,
+    build_d3_payload_1to1 as buildD3Payload1to1
+)
+
+__all__ = [
+    "build_group_message_packet",
+    "build_1to1_message_packet",
+    "build_d3_payload_group",
+    "build_d3_payload_1to1",
+    "buildGroupMessagePacket",
+    "build1to1MessagePacket",
+    "buildD3PayloadGroup",
+    "buildD3Payload1to1"
+]

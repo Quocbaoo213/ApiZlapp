@@ -1,0 +1,82 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# User session, credentials, and state files (Sensitive)
+*.json
+!pyproject.toml
+fresh_session.json
+zalo_zcid.txt
+zcid_trusted.txt
+.session_state.json
+contacts.json
+*.log
+*.pcap
+*.pcapng
+pcap_*
+PCAP*
+har_decoded/
+captcha2_json/
+register_json/
+bot_dist/
+backup/
+scratch/
+cc/
+
+# APK, Archives & Decompilation artifacts
+*.apk
+*.zip
+*.tar.gz
+*.bin
+base_decoded/
+split_arm64_decoded/
+ghidra_c/
+zaloprefs
+c2s_clean_dump.json
+discovered_http_apis.txt
+discovered_socket_cmds.txt
+g0_cmd_table.txt
+g0_methods_dump.txt
+scratch_apis.txt
+scratch_socket_cmds.txt
+vt1_d_endpoints.txt
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
