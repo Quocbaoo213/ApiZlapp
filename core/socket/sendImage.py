@@ -1,23 +1,2 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-core/socket/sendImage.py — TCP Binary Protocol Builder & Handler cho Image.
-"""
-
-from core.socket.tcp.send_image import (
-    build_photo_attach,
-    build_photo_binary_payload,
-    build_photo_message_packet,
-    build_photo_attach as buildImageAttach,
-    build_photo_binary_payload as buildImageBinaryPayload,
-    build_photo_message_packet as buildImageMessagePacket
-)
-
-__all__ = [
-    "build_photo_attach",
-    "build_photo_binary_payload",
-    "build_photo_message_packet",
-    "buildImageAttach",
-    "buildImageBinaryPayload",
-    "buildImageMessagePacket"
-]
+from core.socket.tcp.send_image import build_photo_attach, build_photo_binary_payload, build_photo_message_packet, build_photo_attach as buildImageAttach, build_photo_binary_payload as buildImageBinaryPayload, build_photo_message_packet as buildImageMessagePacket
+__all__ = ['build_photo_attach', 'build_photo_binary_payload', 'build_photo_message_packet', 'buildImageAttach', 'buildImageBinaryPayload', 'buildImageMessagePacket']

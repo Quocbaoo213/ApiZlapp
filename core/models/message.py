@@ -1,12 +1,6 @@
-#!/usr/bin/env python3
-"""
-core/models/message.py — Data models cho Tin nhắn và Trích dẫn (Quote).
-"""
-
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 import time
-
 
 @dataclass
 class Quote:
@@ -17,29 +11,16 @@ class Quote:
     cli_msg_id: int = 0
     group_id: Optional[int] = None
     msg_type: int = 1
-    attach: str = ""
+    attach: str = ''
     ttl: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
-        clean_name = (self.owner_name or "").strip()
+        clean_name = (self.owner_name or '').strip()
         if clean_name.endswith(')') and ' (' in clean_name:
             clean_name = clean_name.split(' (')[0].strip()
-        if not clean_name or clean_name.lower() in ("null", "none"):
+        if not clean_name or clean_name.lower() in ('null', 'none'):
             clean_name = str(self.owner_uid)
-
-        return {
-            "cliMsgType": int(self.msg_type) if self.msg_type else 1,
-            "cliMsgId": int(self.cli_msg_id) if self.cli_msg_id else int(time.time() * 1000),
-            "globalMsgId": int(self.msg_id) if self.msg_id else 0,
-            "ownerId": int(self.owner_uid),
-            "gOwnerId": int(self.group_id) if self.group_id else None,
-            "fromD": clean_name,
-            "ts": int(time.time() * 1000),
-            "msg": str(self.msg_text) if self.msg_text else "",
-            "attach": str(self.attach) if self.attach else "",
-            "ttl": int(self.ttl) if self.ttl else 0
-        }
-
+        return {'cliMsgType': int(self.msg_type) if self.msg_type else 1, 'cliMsgId': int(self.cli_msg_id) if self.cli_msg_id else int(time.time() * 1000), 'globalMsgId': int(self.msg_id) if self.msg_id else 0, 'ownerId': int(self.owner_uid), 'gOwnerId': int(self.group_id) if self.group_id else None, 'fromD': clean_name, 'ts': int(time.time() * 1000), 'msg': str(self.msg_text) if self.msg_text else '', 'attach': str(self.attach) if self.attach else '', 'ttl': int(self.ttl) if self.ttl else 0}
 
 @dataclass
 class Message:
