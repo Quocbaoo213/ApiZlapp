@@ -192,6 +192,9 @@ class ZaloClient:
     def preview_group_link(self, link_or_code: str) -> Dict[str, Any]:
         return self.group_info.preview_group_link(link_or_code=link_or_code)
 
+    def resolve_group_id_from_link(self, link_or_code: str) -> Optional[int]:
+        return self.group_info.resolve_group_id_from_link(link_or_code=link_or_code)
+
     def get_group_list(self, page: int=1, last_group_id: Union[int, str]=0, avatar_size: int=160) -> Optional[Dict[str, Any]]:
         return self.group_info.get_group_list(page=page, last_group_id=last_group_id, avatar_size=avatar_size)
 

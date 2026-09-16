@@ -62,6 +62,15 @@ class GroupInfoAPI(BaseAPI):
             for cached_gid, gdata in self._socket.known_groups.items():
                 if gdata.get('link_code') == link_code or str(cached_gid) == link_code:
                     return int(cached_gid)
+        if link_code:
+            cached_groups = self._groups_cache or self.get_all_groups()
+            for g in cached_groups:
+                link_info = (g.get('extraInfo') or {}).get('groupLinkInfo') or {}
+                l_url = link_info.get('link') or ''
+                if link_code in l_url:
+                    gid_val = g.get('groupId')
+                    if gid_val:
+                        return int(gid_val)
         if self._socket and getattr(self._socket, 'is_connected', False):
             try:
                 if hasattr(self._socket, 'request_group_link_info') and callable(getattr(self._socket, 'request_group_link_info')):
@@ -119,6 +128,15 @@ class GroupInfoAPI(BaseAPI):
         _, gid, code = self.parse_group_target(raw)
         link_code = code or (raw.split('zalo.me/g/')[-1].split('?')[0].strip() if 'zalo.me/g/' in raw else raw)
         link_full = f'https://zalo.me/g/{link_code}' if not raw.startswith('http') else raw
+        matching_group = None
+        if link_code:
+            cached_groups = self._groups_cache or self.get_all_groups()
+            for g in cached_groups:
+                link_info = (g.get('extraInfo') or {}).get('groupLinkInfo') or {}
+                l_url = link_info.get('link') or ''
+                if link_code in l_url:
+                    matching_group = g
+                    break
         sock_res = None
         if self._socket and getattr(self._socket, 'is_connected', False):
             try:
@@ -130,7 +148,9 @@ class GroupInfoAPI(BaseAPI):
                 logger.debug(f'Lỗi preview socket 901: {e}')
         http_res = self.get_group_info_by_link(link_code) or {}
         http_data = http_res.get('data') if isinstance(http_res.get('data'), dict) else http_res if isinstance(http_res, dict) else {}
-        res_gid = gid or (sock_res.get('group_id') if isinstance(sock_res, dict) else None) or http_data.get('groupId') or http_data.get('grid') or http_data.get('id')
+        if matching_group and not http_data:
+            http_data = matching_group
+        res_gid = gid or (sock_res.get('group_id') if isinstance(sock_res, dict) else None) or (matching_group.get('groupId') if matching_group else None) or http_data.get('groupId') or http_data.get('grid') or http_data.get('id')
         name = http_data.get('name') or http_data.get('groupName') or http_data.get('gname') or f'Nhóm {res_gid or link_code}'
         creator_name = http_data.get('creatorName') or http_data.get('ownerName') or http_data.get('creator_name') or 'Trưởng nhóm'
         creator_id = http_data.get('creatorId') or http_data.get('ownerId') or http_data.get('creator_id') or 0

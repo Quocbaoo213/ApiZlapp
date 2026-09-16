@@ -59,8 +59,9 @@ Cấu trúc module của thư viện `core/` được thiết kế theo chuẩn 
   - `def disband_group(self, group_id)` (Dòng 182)
   - `def add_member(self, group_id, member_uids, is_invite)` (Dòng 185)
   - `def join_group(self, target, msg)` (Dòng 188)
-  - `def preview_group_link(self, link_or_code)` (Dòng 191)
-  - `def get_group_list(self, page, last_group_id, avatar_size)` (Dòng 194): Lấy danh sách nhóm phân trang
+  - `def preview_group_link(self, link_or_code)` (Dòng 192): Xem trước thông tin chi tiết của nhóm từ liên kết
+  - `def resolve_group_id_from_link(self, link_or_code)` (Dòng 195): Phân giải Group ID số nguyên từ liên kết hoặc cache nhóm
+  - `def get_group_list(self, page, last_group_id, avatar_size)` (Dòng 198): Lấy danh sách nhóm phân trang
   - `def get_all_groups(self, force_refresh)` (Dòng 197): Tự động lấy tất cả nhóm đang tham gia
   - `def get_group_detail(self, group_id, force_refresh)` (Dòng 200): Lấy chi tiết thông tin một nhóm theo ID
   - `def get_user_profile(self, user_id, force_refresh)` (Dòng 203): Lấy thông tin chi tiết người dùng
