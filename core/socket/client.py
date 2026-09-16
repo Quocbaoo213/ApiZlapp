@@ -767,11 +767,15 @@ class ZaloSocketClient:
         quote_data: Optional[dict] = None,
         native: bool = True,
         sub_type: int = SUB_PHOTO_MSG,
-        is_original: bool = False
+        is_original: bool = False,
+        thread_type: Optional[Any] = None,
+        **kwargs
     ) -> bool:
         """
         Gửi hình ảnh (photo / media card) tới Group hoặc 1-1 qua TCP Socket Gateway.
         """
+        if thread_type is not None:
+            is_group = (thread_type == 2 or thread_type == 4 or str(thread_type).lower() in ("group", "threadtype.group"))
         if ttl is not None and ttl_ms == 0:
             ttl_ms = ttl * 1000 if ttl < 100000 else ttl
         if not self.is_connected or not self.sock:
@@ -828,7 +832,9 @@ class ZaloSocketClient:
         quote_data: Optional[dict] = None,
         native: bool = True,
         sub_type: int = SUB_DOODLE_MSG,
-        is_original: bool = False
+        is_original: bool = False,
+        thread_type: Optional[Any] = None,
+        **kwargs
     ) -> bool:
         """Gửi hình vẽ (doodle / SUB 37) tới Group hoặc 1-1."""
         return self.send_photo(
@@ -848,7 +854,9 @@ class ZaloSocketClient:
             quote_data=quote_data,
             native=native,
             sub_type=sub_type,
-            is_original=is_original
+            is_original=is_original,
+            thread_type=thread_type,
+            **kwargs
         )
 
     def send_video(
@@ -868,11 +876,15 @@ class ZaloSocketClient:
         ttl: Optional[int] = None,
         quote_data: Optional[dict] = None,
         native: bool = True,
-        sub_type: int = SUB_VIDEO_MSG
+        sub_type: int = SUB_VIDEO_MSG,
+        thread_type: Optional[Any] = None,
+        **kwargs
     ) -> bool:
         """
         Gửi video (video / media card) tới Group hoặc 1-1 qua TCP Socket Gateway.
         """
+        if thread_type is not None:
+            is_group = (thread_type == 2 or thread_type == 4 or str(thread_type).lower() in ("group", "threadtype.group"))
         if ttl is not None and ttl_ms == 0:
             ttl_ms = ttl * 1000 if ttl < 100000 else ttl
         if not self.is_connected or not self.sock:

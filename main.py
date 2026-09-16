@@ -1627,7 +1627,7 @@ class ZaloBotEngine:
                         self.client.send_doodle(
                             target_id=target_dest,
                             doodle_url_or_path=d_url,
-                            thread_type=ThreadType.GROUP if to_group else ThreadType.USER,
+                            is_group=bool(to_group),
                             caption=d_cap,
                             thumb_url=d_thumb
                         )
@@ -1650,7 +1650,7 @@ class ZaloBotEngine:
                         self.client.send_video(
                             target_id=target_dest,
                             video_url_or_path=v_url,
-                            thread_type=ThreadType.GROUP if to_group else ThreadType.USER,
+                            is_group=bool(to_group),
                             caption=v_cap,
                             thumb_url=v_thumb
                         )
