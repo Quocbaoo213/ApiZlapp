@@ -74,6 +74,27 @@ scratch_apis.txt
 scratch_socket_cmds.txt
 vt1_d_endpoints.txt
 
+# Local test & debug scripts (Keep library repo clean)
+test_*.py
+main.py
+login.py
+login_bot.py
+zalo_*.py
+hook.js
+chat_fault_tolerant_client.py
+crypto.py
+protocol.py
+socket_client.py
+zalo_user_info.py
+extract_*.py
+export_*.py
+find_*.py
+generate_*.py
+scratch_*.py
+search_*.py
+report.md
+c.md
+
 # IDE / Editor
 .idea/
 .vscode/
