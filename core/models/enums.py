@@ -24,6 +24,10 @@ class MessageType(IntEnum):
     VIDEO = 3
     VOICE = 4
     STICKER = 6
+    CLI_PHOTO = 32
+    CLI_STICKER = 36
+    CLI_DOODLE = 37
+    CLI_VIDEO = 44
 
 class ReactionIcon(str, Enum):
     HEART = '/-heart'

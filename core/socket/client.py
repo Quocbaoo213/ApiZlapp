@@ -22,10 +22,11 @@ from core.socket.actions.poll import PollActionMixin
 from core.socket.actions.undo_message import UndoMessageActionMixin
 from core.socket.actions.group_actions import GroupActionsMixin
 from core.socket.actions.block_user import BlockUserActionMixin
+from core.socket.actions.send_sticker import SendStickerActionMixin
 logger = logging.getLogger('core.socket.client')
 DEFAULT_SERVERS = [{'host': '49.213.95.83', 'port': 443}, {'host': '49.213.95.87', 'port': 443}, {'host': '49.213.95.90', 'port': 443}, {'host': '49.213.95.92', 'port': 443}, {'host': '49.213.95.96', 'port': 443}, {'host': '49.213.95.74', 'port': 443}, {'host': '49.213.95.77', 'port': 443}, {'host': '49.213.95.86', 'port': 443}]
 
-class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoActionMixin, SendDoodleActionMixin, SendReactionActionMixin, SendTypingActionMixin, PinTopicActionMixin, PollActionMixin, UndoMessageActionMixin, GroupActionsMixin, BlockUserActionMixin):
+class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoActionMixin, SendDoodleActionMixin, SendStickerActionMixin, SendReactionActionMixin, SendTypingActionMixin, PinTopicActionMixin, PollActionMixin, UndoMessageActionMixin, GroupActionsMixin, BlockUserActionMixin):
 
     def __init__(self, uid: int, dk: bytes, cryptkey: Optional[bytes]=None, session_key: Optional[str]=None, ksid: Optional[str]=None, server_pubkey_b64: Optional[str]=None, frame0_path: Optional[str]=None, init_sequence_path: Optional[str]=None, server_pool: Optional[List[Dict[str, Any]]]=None, state_file: Optional[str]=None, on_message_callback: Optional[Callable[[Dict[str, Any]], None]]=None, ping_interval: float=10.0, debug: bool=False):
         self.uid = int(uid)

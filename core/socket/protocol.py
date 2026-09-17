@@ -30,6 +30,7 @@ SUB_DOODLE_MSG = 37
 SUB_PHOTO_ATTACH_MSG = 37
 SUB_ATTACH_MSG = 37
 SUB_VIDEO_MSG = 44
+SUB_STICKER_MSG = 36
 CMD_GROUP_TYPING = 206
 SUB_GROUP_TYPING = 1
 CMD_1TO1_TYPING = 106
@@ -169,6 +170,9 @@ def build_video_attach(url: str, width: int=1280, height: int=720, duration: int
     thumb = str(thumb_url or url)
     u = str(url)
     return {'title': str(title or ''), 'description': str(description or ''), 'href': u, 'thumb': thumb, 'normalUrl': u, 'url': u, 'thumbs': [thumb], 'media': {'url': u, 'thumb': thumb, 'width': int(width or 1280), 'height': int(height or 720), 'duration': int(duration or 0), 'totalSize': int(total_size or 0)}, 'tType': 4, 'tWidth': int(width or 1280), 'tHeight': int(height or 720), 'width': int(width or 1280), 'height': int(height or 720), 'duration': int(duration or 0), 'totalSize': int(total_size or 0), 'actionId': 0}
+
+def build_sticker_attach(cat_id: Union[int, str], sticker_id: Union[int, str], sticker_type: int=7) -> Dict[str, Any]:
+    return {'id': int(sticker_id), 'catId': int(cat_id), 'type': int(sticker_type)}
 
 def build_d3_payload_group(text: str, ttl_ms: int=0, quote_data: Optional[Dict[str, Any]]=None, mentions: Optional[List[Dict[str, Any]]]=None, style_id: Optional[int]=None, size: Optional[int]=None, color: Optional[str]=None, bold: bool=False, italic: bool=False, underline: bool=False, strike: bool=False, fontsize: Optional[int]=None, list_type: Optional[int]=None, rtf_mode: str='fwd', attach: Optional[Union[Dict[str, Any], str]]=None) -> bytes:
     ttl_ms = int(ttl_ms or 0)

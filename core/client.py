@@ -142,6 +142,22 @@ class ZaloClient:
     def send_1to1_message(self, user_id: int, text: str, ttl_seconds: int=0, quote: Optional[Quote | Dict[str, Any]]=None) -> bool:
         return self.send_message(user_id, text, thread_type=ThreadType.USER, ttl_seconds=ttl_seconds, quote=quote)
 
+    def send_sticker(self, target_id: int, cat_id: Union[int, str], sticker_id: Union[int, str], thread_type: ThreadType=ThreadType.GROUP, sticker_type: int=7, ttl_seconds: int=0, quote: Optional[Quote | Dict[str, Any]]=None, **kwargs) -> bool:
+        if self._socket and self._socket.is_connected:
+            is_grp = thread_type == ThreadType.GROUP
+            ttl_ms = ttl_seconds * 1000 if ttl_seconds > 0 else 0
+            q_dict = quote.to_dict() if isinstance(quote, Quote) else quote
+            return self._socket.send_sticker(target_id=target_id, cat_id=cat_id, sticker_id=sticker_id, is_group=is_grp, sticker_type=sticker_type, ttl_ms=ttl_ms, quote_data=q_dict, **kwargs)
+        return False
+
+    def send_group_sticker(self, group_id: int, cat_id: Union[int, str], sticker_id: Union[int, str], sticker_type: int=7, ttl_seconds: int=0, quote: Optional[Quote | Dict[str, Any]]=None, **kwargs) -> bool:
+        return self.send_sticker(target_id=group_id, cat_id=cat_id, sticker_id=sticker_id, thread_type=ThreadType.GROUP, sticker_type=sticker_type, ttl_seconds=ttl_seconds, quote=quote, **kwargs)
+
+    def send_1to1_sticker(self, user_id: int, cat_id: Union[int, str], sticker_id: Union[int, str], sticker_type: int=7, ttl_seconds: int=0, quote: Optional[Quote | Dict[str, Any]]=None, **kwargs) -> bool:
+        return self.send_sticker(target_id=user_id, cat_id=cat_id, sticker_id=sticker_id, thread_type=ThreadType.USER, sticker_type=sticker_type, ttl_seconds=ttl_seconds, quote=quote, **kwargs)
+
+    sendSticker = send_sticker
+
     def send_typing(self, target_id: int, is_group: bool=True) -> bool:
         return self.send.send_typing(target_id=target_id, is_group=is_group)
 
