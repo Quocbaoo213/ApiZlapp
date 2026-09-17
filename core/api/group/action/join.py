@@ -74,8 +74,12 @@ class JoinAPI(BaseAPI):
         if not res_gid and res_http and isinstance(res_http, dict):
             data = res_http.get('data') if isinstance(res_http.get('data'), dict) else res_http
             res_gid = data.get('groupId') or data.get('grid') or data.get('id')
-        is_success = bool(socket_sent or (res_http and res_http.get('error_code') == 0)) and (not (err_code and err_code != 0))
-        status_text = err_msg if err_msg else 'Đã gửi yêu cầu tham gia nhóm qua link thành công' if is_success else 'Gửi yêu cầu thất bại'
+        has_gid = bool(res_gid or gid)
+        is_success = bool(has_gid and (socket_sent or (res_http and res_http.get('error_code') == 0))) and (not (err_code and err_code != 0))
+        if not has_gid:
+            status_text = 'Không thể phân giải Group ID từ liên kết (liên kết có thể đã hết hạn hoặc bị thu hồi)'
+        else:
+            status_text = err_msg if err_msg else 'Đã gửi yêu cầu tham gia nhóm thành công' if is_success else 'Gửi yêu cầu thất bại'
         out = {'success': is_success, 'type': 'link', 'link': link_full, 'link_code': link_code, 'status': status_text, 'error_code': err_code, 'error_message': err_msg, 'socket_sent': bool(socket_sent)}
         if res_gid:
             out['group_id'] = int(res_gid)
