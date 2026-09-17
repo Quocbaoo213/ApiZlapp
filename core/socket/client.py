@@ -23,10 +23,11 @@ from core.socket.actions.undo_message import UndoMessageActionMixin
 from core.socket.actions.group_actions import GroupActionsMixin
 from core.socket.actions.block_user import BlockUserActionMixin
 from core.socket.actions.send_sticker import SendStickerActionMixin
+from core.socket.actions.user_actions import UserActionsMixin
 logger = logging.getLogger('core.socket.client')
 DEFAULT_SERVERS = [{'host': '49.213.95.83', 'port': 443}, {'host': '49.213.95.87', 'port': 443}, {'host': '49.213.95.90', 'port': 443}, {'host': '49.213.95.92', 'port': 443}, {'host': '49.213.95.96', 'port': 443}, {'host': '49.213.95.74', 'port': 443}, {'host': '49.213.95.77', 'port': 443}, {'host': '49.213.95.86', 'port': 443}]
 
-class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoActionMixin, SendDoodleActionMixin, SendStickerActionMixin, SendReactionActionMixin, SendTypingActionMixin, PinTopicActionMixin, PollActionMixin, UndoMessageActionMixin, GroupActionsMixin, BlockUserActionMixin):
+class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoActionMixin, SendDoodleActionMixin, SendStickerActionMixin, SendReactionActionMixin, SendTypingActionMixin, PinTopicActionMixin, PollActionMixin, UndoMessageActionMixin, GroupActionsMixin, BlockUserActionMixin, UserActionsMixin):
 
     def __init__(self, uid: int, dk: bytes, cryptkey: Optional[bytes]=None, session_key: Optional[str]=None, ksid: Optional[str]=None, server_pubkey_b64: Optional[str]=None, frame0_path: Optional[str]=None, init_sequence_path: Optional[str]=None, server_pool: Optional[List[Dict[str, Any]]]=None, state_file: Optional[str]=None, on_message_callback: Optional[Callable[[Dict[str, Any]], None]]=None, ping_interval: float=10.0, debug: bool=False):
         self.uid = int(uid)
@@ -267,10 +268,30 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                         parsed = parse_incoming_frame(frame, dk=self.dk, cryptkey=self.cryptkey, my_uid=self.uid)
                         cmd = parsed.get('cmd')
                         sub = parsed.get('sub')
-                        if cmd in (1705, 1703, 1708, 1752, 113, 207, 202, 228, 234, 235, 239, 242, 246, 250, 225, 241, 244, 901, 902, 906, 2000, 1640, 382, 383):
+                        if cmd in (1705, 1703, 1708, 1752, 113, 151, 207, 202, 228, 234, 235, 239, 242, 246, 250, 225, 241, 244, 901, 902, 906, 2000, 1640, 382, 383):
                             raw_params = parsed.get('raw_params', b'')
                             status = struct.unpack('<i', raw_params[:4])[0] if len(raw_params) >= 4 else 0
                             ack_dict = {'cmd': cmd, 'sub': sub, 'status_code': status, 'raw_hex': raw_params[:8].hex() if raw_params else '', 'raw_params': raw_params, 'params_len': len(raw_params)}
+                            if cmd == 151:
+                                try:
+                                    if len(raw_params) > 4:
+                                        d3_res = parse_d3_compressed_json(raw_params[4:], self.uid)
+                                        if not d3_res:
+                                            d3_res = parse_d3_compressed_json(raw_params, self.uid)
+                                        if d3_res:
+                                            ack_dict['json_data'] = d3_res
+                                            u_data = d3_res.get('data') if isinstance(d3_res.get('data'), dict) else d3_res
+                                            if isinstance(u_data, dict):
+                                                ack_dict['user_profile'] = u_data
+                                                ack_dict['user_id'] = u_data.get('uid') or u_data.get('userId')
+                                                ack_dict['display_name'] = u_data.get('dpn') or u_data.get('displayName')
+                                                ack_dict['avatar'] = u_data.get('avt') or u_data.get('avatar')
+                                                ack_dict['cover'] = u_data.get('cover')
+                                                ack_dict['status'] = u_data.get('stt')
+                                                ack_dict['global_id'] = u_data.get('globalId')
+                                                ack_dict['business_account'] = u_data.get('business_account')
+                                except Exception:
+                                    pass
                             if cmd in (901, 902):
                                 try:
                                     ack_dict['status_code'] = struct.unpack_from('<i', raw_params, 0)[0] if len(raw_params) >= 4 else 0
@@ -279,6 +300,8 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                                         j_obj = json.loads(raw_params[j_idx:].decode('utf-8', errors='ignore'))
                                         j_data = j_obj.get('data') or j_obj
                                         j_gid = j_data.get('groupId') or j_data.get('grid') or j_data.get('id') or j_data.get('group_id')
+                                        if not j_gid and isinstance(j_data, dict) and isinstance(j_data.get('item'), dict):
+                                            j_gid = j_data['item'].get('gid')
                                         if j_gid:
                                             ack_dict['group_id'] = int(j_gid)
                                     import zlib as _zlib
@@ -289,6 +312,8 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                                                 _j = json.loads(_dec)
                                                 _d = _j.get('data') or _j
                                                 _gid = _d.get('groupId') or _d.get('grid') or _d.get('id')
+                                                if not _gid and isinstance(_d, dict) and isinstance(_d.get('item'), dict):
+                                                    _gid = _d['item'].get('gid')
                                                 if _gid:
                                                     ack_dict['group_id'] = int(_gid)
                                                 ack_dict['json_data'] = _j
@@ -323,15 +348,47 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                                                 ack_dict['group_error_msg'] = ZaloGroupErrorCode.get_message(d3_res['error_code'])
                                             if d3_res.get('group_id'):
                                                 ack_dict['group_id'] = int(d3_res['group_id'])
+                                            elif isinstance(d3_res.get('data'), dict) and isinstance(d3_res['data'].get('item'), dict) and d3_res['data']['item'].get('gid'):
+                                                ack_dict['group_id'] = int(d3_res['data']['item']['gid'])
+                                            item_data = d3_res.get('data', {}).get('item', {}) if isinstance(d3_res.get('data'), dict) else (d3_res.get('item', {}) if isinstance(d3_res.get('item'), dict) else {})
+                                            if isinstance(item_data, dict):
+                                                g_info = item_data.get('ginfo') or {}
+                                                if isinstance(g_info, dict):
+                                                    ack_dict['ginfo'] = g_info
+                                                    if g_info.get('name'):
+                                                        ack_dict['group_name'] = g_info['name']
+                                                    if g_info.get('creatorId'):
+                                                        ack_dict['creator_id'] = g_info['creatorId']
+                                                    if g_info.get('totalMembers'):
+                                                        ack_dict['total_member'] = g_info['totalMembers']
+                                                    if g_info.get('desc'):
+                                                        ack_dict['desc'] = g_info['desc']
+                                                    if g_info.get('fullAvt') or g_info.get('avt'):
+                                                        ack_dict['avatar'] = g_info.get('fullAvt') or g_info.get('avt')
+                                                    if g_info.get('currentMems'):
+                                                        ack_dict['current_mems'] = g_info['currentMems']
+                                                    if g_info.get('setting'):
+                                                        ack_dict['setting'] = g_info['setting']
+                                                    if g_info.get('admins'):
+                                                        ack_dict['admins'] = g_info['admins']
                                     if b'{' in raw_params and (not ack_dict.get('group_id')):
                                         j_idx = raw_params.find(b'{')
                                         j_obj = json.loads(raw_params[j_idx:].decode('utf-8', errors='ignore'))
                                         j_data = j_obj.get('data') or j_obj
                                         j_gid = j_data.get('groupId') or j_data.get('grid') or j_data.get('id')
+                                        if not j_gid and isinstance(j_data, dict) and isinstance(j_data.get('item'), dict):
+                                            j_gid = j_data['item'].get('gid')
                                         if j_gid:
                                             ack_dict['group_id'] = int(j_gid)
                                     if ack_dict.get('group_id'):
-                                        self.known_groups[str(ack_dict['group_id'])] = {'group_id': ack_dict['group_id'], 'ts': time.time()}
+                                        gid_key = str(ack_dict['group_id'])
+                                        kg_entry = self.known_groups.get(gid_key, {})
+                                        kg_entry['group_id'] = ack_dict['group_id']
+                                        kg_entry['ts'] = time.time()
+                                        for k_field in ('group_name', 'creator_id', 'total_member', 'desc', 'avatar', 'current_mems', 'setting', 'admins', 'ginfo'):
+                                            if ack_dict.get(k_field):
+                                                kg_entry[k_field] = ack_dict[k_field]
+                                        self.known_groups[gid_key] = kg_entry
                                 except Exception:
                                     pass
                             if cmd == 1703:

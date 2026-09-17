@@ -14,12 +14,21 @@ CACHE_TTL_SECONDS = 300
 
 class UserAPI:
 
-    def __init__(self, session_path: Optional[Union[str, Dict[str, Any]]]=None):
+    def __init__(self, session_path: Optional[Union[str, Dict[str, Any]]]=None, socket_client=None):
         self.session_path = session_path
+        self._socket = socket_client
         self._cache: Dict[int, Tuple[float, Dict[str, Any]]] = {}
         self._aliases: Dict[int, str] = {}
         self._seen_users: Dict[int, Dict[str, Any]] = {}
         self._last_friend_fetch = 0.0
+
+    @property
+    def socket(self):
+        return self._socket
+
+    @socket.setter
+    def socket(self, sock):
+        self._socket = sock
 
     def _extract_session_fields(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if not isinstance(data, dict):
@@ -120,6 +129,25 @@ class UserAPI:
                 return UserProfile.from_dict(data)
         if force_refresh or (now - self._last_friend_fetch > 30 and (not self._cache)):
             self.refresh_friends_cache()
+        if uid in self._cache and self._cache[uid][1].get('isFr') == 1:
+            return UserProfile.from_dict(self._cache[uid][1])
+        if self._socket and getattr(self._socket, 'is_connected', False):
+            try:
+                if hasattr(self._socket, 'query_user_profile_151') and callable(getattr(self._socket, 'query_user_profile_151')):
+                    res = self._socket.query_user_profile_151(uid, wait_response=True, timeout=3.5)
+                    if isinstance(res, dict) and res.get('got_response') and res.get('data'):
+                        u_data = dict(res['data'])
+                        u_data['userId'] = uid
+                        if uid in self._cache and self._cache[uid][1].get('isFr') == 1:
+                            u_data['isFr'] = 1
+                            u_data['is_friend'] = True
+                        if uid in self._aliases:
+                            u_data['alias'] = self._aliases[uid]
+                        self._cache[uid] = (now, u_data)
+                        self.register_seen_user(uid, u_data.get('dpn') or u_data.get('displayName'), u_data.get('avt') or u_data.get('avatar'))
+                        return UserProfile.from_dict(u_data)
+            except Exception as e:
+                logger.debug(f'Lỗi query profile socket 151: {e}')
         if uid in self._cache:
             return UserProfile.from_dict(self._cache[uid][1])
         seen = self._seen_users.get(uid, {})
@@ -236,53 +264,49 @@ class UserAPI:
     @staticmethod
     def format_user_info(user_obj: Union[UserProfile, Dict[str, Any]]) -> str:
         if isinstance(user_obj, UserProfile):
-            d = user_obj.raw_data or {}
-            uid = user_obj.user_id
-            display_name = user_obj.display_name
-            alias = user_obj.alias
-            uname = user_obj.username
-            gender_code = user_obj.gender.value if hasattr(user_obj.gender, 'value') else user_obj.gender
-            sdob = user_obj.dob or ''
-            phone = user_obj.phone or ''
-            is_fr = user_obj.is_friend
-            is_block = user_obj.is_blocked
-            avatar_url = user_obj.avatar or ''
-            type_str = user_obj.account_type
-            created_str = user_obj.created_time
-            last_onl_str = user_obj.last_online
-        else:
-            d = user_obj
-            uid = d.get('userId', 0)
-            display_name = d.get('displayName') or 'Chưa đặt tên'
-            alias = d.get('alias')
-            uname = d.get('uname')
-            gender_code = d.get('gender')
-            sdob = d.get('sdob') or ''
-            dob = d.get('dob', 0)
-            if not sdob and dob:
-                try:
-                    sdob = datetime.fromtimestamp(int(dob), tz=TZ_VN).strftime('%d/%m/%Y')
-                except Exception:
-                    sdob = ''
-            phone = d.get('phoneNumber') or ''
-            is_fr = d.get('isFr', 0) == 1 or d.get('is_friend', False)
-            is_block = d.get('isBlock', 0) == 1
-            avatar_url = d.get('avatar') or ''
-            account_type = d.get('business_account')
-            type_str = None
-            if account_type and isinstance(account_type, dict):
-                type_str = account_type.get('label_name', 'Business')
-            from core.utils.helpers import estimate_account_creation, get_high_res_avatar
-            created_str = d.get('created_time') or estimate_account_creation(uid)
-            last_onl_str = d.get('last_online')
-            if not last_onl_str and d.get('last_seen'):
-                try:
-                    last_onl_str = datetime.fromtimestamp(int(d['last_seen']), tz=TZ_VN).strftime('%d/%m/%Y %H:%M:%S')
-                except Exception:
-                    last_onl_str = None
-            if not last_onl_str:
-                last_onl_str = datetime.now(TZ_VN).strftime('%d/%m/%Y %H:%M:%S')
-            avatar_url = get_high_res_avatar(avatar_url) or avatar_url
+            return user_obj.to_card()
+        d = user_obj
+        uid = d.get('userId', 0) or d.get('uid', 0)
+        display_name = d.get('displayName') or d.get('dpn') or 'Chưa đặt tên'
+        alias = d.get('alias')
+        uname = d.get('uname') or d.get('usr')
+        gender_code = d.get('gender') if d.get('gender') is not None else d.get('ged')
+        sdob = d.get('sdob') or ''
+        dob = d.get('dob', 0)
+        if not sdob and dob:
+            try:
+                sdob = datetime.fromtimestamp(int(dob), tz=TZ_VN).strftime('%d/%m/%Y')
+            except Exception:
+                sdob = ''
+        phone = d.get('phoneNumber') or d.get('phone') or ''
+        is_fr = d.get('isFr', 0) == 1 or d.get('is_friend', False)
+        is_block = d.get('isBlock', 0) == 1
+        avatar_url = d.get('avatar') or d.get('avt') or ''
+        cover_url = d.get('cover') or ''
+        bio_text = d.get('stt') or d.get('bio') or ''
+        global_id = d.get('globalId') or ''
+        account_type = d.get('business_account')
+        type_str = None
+        if account_type and isinstance(account_type, dict):
+            type_str = account_type.get('label_name', 'Business')
+        from core.utils.helpers import estimate_account_creation, get_high_res_avatar
+        created_str = d.get('created_time') or estimate_account_creation(uid)
+        last_onl_str = d.get('last_online')
+        if not last_onl_str and d.get('last_action'):
+            try:
+                la_ts = int(d['last_action'])
+                if la_ts > 0:
+                    last_onl_str = datetime.fromtimestamp(la_ts, tz=TZ_VN).strftime('%d/%m/%Y %H:%M:%S')
+            except Exception:
+                pass
+        if not last_onl_str and d.get('last_seen'):
+            try:
+                last_onl_str = datetime.fromtimestamp(int(d['last_seen']), tz=TZ_VN).strftime('%d/%m/%Y %H:%M:%S')
+            except Exception:
+                last_onl_str = None
+        if not last_onl_str:
+            last_onl_str = datetime.now(TZ_VN).strftime('%d/%m/%Y %H:%M:%S')
+        avatar_url = get_high_res_avatar(avatar_url) or avatar_url
         if gender_code == 0:
             gender_str = 'Nam'
         elif gender_code == 1:
@@ -297,8 +321,12 @@ class UserAPI:
         if alias:
             lines.append(f'• Biệt danh     : {alias}')
         lines.append(f'• User ID (UID) : {uid}')
+        if global_id:
+            lines.append(f'• Global ID     : {global_id}')
         if uname:
             lines.append(f'• Username      : @{uname}')
+        if bio_text:
+            lines.append(f'• Tiểu sử (Bio) : {bio_text}')
         lines.append(f'• Giới tính     : {gender_str}')
         lines.append(f'• Ngày sinh     : {dob_str}')
         lines.append(f'• Số điện thoại : {phone_str}')
@@ -312,4 +340,14 @@ class UserAPI:
         lines.append(f'• Trạng thái    : {status_str}')
         if avatar_url:
             lines.append(f'• Ảnh đại diện  : {avatar_url}')
+        if cover_url:
+            lines.append(f'• Ảnh bìa       : {cover_url}')
         return '\n'.join(lines)
+
+    get_profile = get_user_profile
+    fetch_profile = get_user_profile
+    list_friends = get_all_friends
+    list_friend_pages = get_friend_list
+    add_friend = send_friend_request
+    request_friend = send_friend_request
+    format_profile = format_user_info

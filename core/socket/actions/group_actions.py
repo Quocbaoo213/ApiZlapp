@@ -32,6 +32,7 @@ class GroupActionsMixin:
             logger.error(f'Lỗi gửi CMD 1705: {e}')
             return {'sent': False, 'error': str(e)}
     send_cmd_1705 = send_group_event_1705
+    send_event = send_group_event_1705
 
     def disband_group_242(self, group_id: int, wait_response: bool=False, timeout: float=8.0) -> Union[bool, Dict[str, Any]]:
         if not self.is_connected or not self.sock:
@@ -210,7 +211,21 @@ class GroupActionsMixin:
             logger.info(f"Đã gửi yêu cầu Preview link '{link_url}' qua Socket (CMD 901 SUB 3)")
             if wait_response:
                 got_ack, ack_res = self._wait_cmd_ack(901, timeout=timeout)
-                return {'sent': True, 'got_response': got_ack, 'group_id': ack_res.get('group_id') if got_ack else None, 'ack_result': ack_res}
+                return {
+                    'sent': True,
+                    'got_response': got_ack,
+                    'group_id': ack_res.get('group_id') if got_ack else None,
+                    'group_name': ack_res.get('group_name'),
+                    'creator_id': ack_res.get('creator_id'),
+                    'total_member': ack_res.get('total_member'),
+                    'desc': ack_res.get('desc'),
+                    'avatar': ack_res.get('avatar'),
+                    'current_mems': ack_res.get('current_mems'),
+                    'setting': ack_res.get('setting'),
+                    'admins': ack_res.get('admins'),
+                    'ginfo': ack_res.get('ginfo'),
+                    'ack_result': ack_res
+                }
             return True
         except Exception as e:
             logger.error(f'Lỗi preview link 901: {e}')
@@ -366,3 +381,13 @@ class GroupActionsMixin:
         if isinstance(res2, dict) and res2.get('group_id'):
             return int(res2['group_id'])
         return None
+
+    kick = remove_member
+    ban_member = block_group_member
+    ban = block_group_member
+    preview_group = preview_link_901
+    preview_link = preview_link_901
+    query_group = query_group_906
+    join_by_link = join_group_by_link
+    request_join = request_join_group
+    resolve_group_id = request_group_link_info

@@ -174,7 +174,7 @@ def build_video_attach(url: str, width: int=1280, height: int=720, duration: int
 def build_sticker_attach(cat_id: Union[int, str], sticker_id: Union[int, str], sticker_type: int=7) -> Dict[str, Any]:
     return {'id': int(sticker_id), 'catId': int(cat_id), 'type': int(sticker_type)}
 
-def build_d3_payload_group(text: str, ttl_ms: int=0, quote_data: Optional[Dict[str, Any]]=None, mentions: Optional[List[Dict[str, Any]]]=None, style_id: Optional[int]=None, size: Optional[int]=None, color: Optional[str]=None, bold: bool=False, italic: bool=False, underline: bool=False, strike: bool=False, fontsize: Optional[int]=None, list_type: Optional[int]=None, rtf_mode: str='fwd', attach: Optional[Union[Dict[str, Any], str]]=None) -> bytes:
+def build_d3_payload_group(text: str, ttl_ms: int=0, quote_data: Optional[Dict[str, Any]]=None, mentions: Optional[List[Dict[str, Any]]]=None, style_id: Optional[int]=None, size: Optional[int]=None, color: Optional[str]=None, bold: bool=False, italic: bool=False, underline: bool=False, strike: bool=False, fontsize: Optional[int]=None, list_type: Optional[int]=None, rtf_mode: str='fwd', attach: Optional[Union[Dict[str, Any], str]]=None, sub_id: int=1) -> bytes:
     ttl_ms = int(ttl_ms or 0)
     prop_obj = {'sSrcType': -1, 'sSrcStr': '', 'msg_warning_type': 0, 'emoji': {'content': 0, 'num': 0, 'uniq': 0, 'first': '', 'last': '', 'most': '', 'text': 1}}
     if style_id is not None:
@@ -246,9 +246,10 @@ def build_d3_payload_group(text: str, ttl_ms: int=0, quote_data: Optional[Dict[s
         if mention_len == 0 and text.startswith('@'):
             parts = text.split(' ', 1)
             mention_len = len(parts[0].encode('utf-16-le')) // 2
+        sub_hdr = struct.pack('<H', int(sub_id))
         count_byte = 4 if ttl_ms > 0 else 3
         buf = bytearray()
-        buf += bytes([1, 0, count_byte, 11, 1])
+        buf += sub_hdr + bytes([count_byte, 11, 1])
         buf += struct.pack('<I', 0)
         buf += struct.pack('<H', mention_len)
         buf += struct.pack('<I', q_uid)
@@ -268,11 +269,12 @@ def build_d3_payload_group(text: str, ttl_ms: int=0, quote_data: Optional[Dict[s
             buf += bytes([8]) + struct.pack('<I', ttl_ms) + bytes(4)
         buf += text_bytes
         return bytes(buf)
+    sub_hdr = struct.pack('<H', int(sub_id))
     if ttl_ms > 0:
-        header = bytearray([1, 0, 2, 7, 0]) + style_hdr + struct.pack('<I', len(prop_bytes)) + prop_bytes
+        header = bytearray(sub_hdr + bytes([2, 7, 0])) + style_hdr + struct.pack('<I', len(prop_bytes)) + prop_bytes
         ttl_block = bytes([8]) + struct.pack('<I', ttl_ms) + bytes(4)
         return header + ttl_block + text_bytes
-    header = bytearray([1, 0, 1, 7, 0]) + style_hdr + struct.pack('<I', len(prop_bytes)) + prop_bytes
+    header = bytearray(sub_hdr + bytes([1, 7, 0])) + style_hdr + struct.pack('<I', len(prop_bytes)) + prop_bytes
     return bytes(header + text_bytes)
 
 def build_d3_json(style_id: Optional[int]=None) -> bytes:
@@ -281,9 +283,13 @@ def build_d3_json(style_id: Optional[int]=None) -> bytes:
         return json.dumps(obj, separators=(',', ':')).encode('utf-8')
     return b'{"sSrcType":-1,"sSrcStr":"","msg_warning_type":0,"emoji":{"content":0,"num":0,"uniq":0,"first":"","last":"","most":"","text":1}}'
 
-def build_d3_payload_1to1(text: str, cryptkey: bytes, ttl_ms: int=0, quote_data: Optional[Dict[str, Any]]=None, attach: Optional[Union[Dict[str, Any], str]]=None) -> bytes:
+def build_d3_payload_1to1(text: str, cryptkey: Optional[bytes]=None, ttl_ms: int=0, quote_data: Optional[Dict[str, Any]]=None, attach: Optional[Union[Dict[str, Any], str]]=None, sub_id: int=41) -> bytes:
     ttl_ms = int(ttl_ms or 0)
-    ct, iv = encrypt_e2ee_cbc(text.encode('utf-8'), cryptkey)
+    if cryptkey:
+        ct, iv = encrypt_e2ee_cbc(text.encode('utf-8'), cryptkey)
+    else:
+        ct = text.encode('utf-8')
+        iv = bytes(16)
     text_block = bytes([1]) + iv + struct.pack('<H', len(ct)) + ct
     prop_obj = {'sSrcType': -1, 'sSrcStr': '', 'msg_warning_type': 0, 'emoji': {'content': 0, 'num': 0, 'uniq': 0, 'first': '', 'last': '', 'most': '', 'text': 1}}
     if ttl_ms > 0:
@@ -294,12 +300,13 @@ def build_d3_payload_1to1(text: str, cryptkey: bytes, ttl_ms: int=0, quote_data:
         else:
             prop_obj['attach'] = str(attach)
     prop_bytes = json.dumps(prop_obj, separators=(',', ':')).encode('utf-8')
+    sub_hdr = struct.pack('<H', int(sub_id))
     if not quote_data:
         if ttl_ms > 0:
             ttl_block = bytes([8]) + struct.pack('<I', ttl_ms) + bytes(4)
-            prop_header = bytes([41, 0, 2, 7, 0]) + b'\xff' * 12 + struct.pack('<I', len(prop_bytes)) + prop_bytes
+            prop_header = sub_hdr + bytes([2, 7, 0]) + b'\xff' * 12 + struct.pack('<I', len(prop_bytes)) + prop_bytes
             return prop_header + ttl_block + text_block
-        prop_header = bytes([41, 0, 1, 7, 0]) + b'\xff' * 12 + struct.pack('<I', len(prop_bytes)) + prop_bytes
+        prop_header = sub_hdr + bytes([1, 7, 0]) + b'\xff' * 12 + struct.pack('<I', len(prop_bytes)) + prop_bytes
         return prop_header + text_block
     q_uid = int(quote_data.get('ownerId') or quote_data.get('uid') or 0)
     q_ts = int(quote_data.get('ts') or int(time.time() * 1000))
@@ -323,7 +330,7 @@ def build_d3_payload_1to1(text: str, cryptkey: bytes, ttl_ms: int=0, quote_data:
         mention_len = len(parts[0].encode('utf-16-le')) // 2
     count_byte = 4 if ttl_ms > 0 else 3
     buf = bytearray()
-    buf += bytes([41, 0, count_byte, 11, 1])
+    buf += sub_hdr + bytes([count_byte, 11, 1])
     buf += struct.pack('<I', 0)
     buf += struct.pack('<H', mention_len)
     buf += struct.pack('<I', q_uid)
@@ -762,24 +769,31 @@ def build_create_poll_packet(uid: int, group_id: int, question: str, options: Li
     hdr = InnerPacketHeader(ck=ck_val, bb=0, ty=1, seq=seq, uid=uid, ver=3, cmd=cmd, sub=sub)
     return hdr.pack() + enc_params
 
-def build_join_group_by_link_901_packet(uid: int, link_url: str, seq: int=-100, ck_val: int=0) -> bytes:
+def build_join_group_by_link_901_packet(uid: int, link_url: str, seq: int=-100, ck_val: int=0, vercode: int=260802903, source: int=1, sub_type: int=0) -> bytes:
     cmd = 901
     sub = 3
-    url_b = link_url.strip().encode('utf-8') if isinstance(link_url, str) else bytes(link_url)
-    url_len = len(url_b)
-    url_enc = bytearray(url_b)
-    for i in range(len(url_enc)):
-        if i % 4 == 3:
-            url_enc[i] ^= 51
-    plain = b'\x00' * 8 + bytes([url_len]) + bytes(url_enc)
-    enc_params = xor_encode_d3(plain, uid)
+    url_clean = str(link_url).strip()
+    if not url_clean.startswith('http://') and not url_clean.startswith('https://'):
+        url_clean = f'https://zalo.me/g/{url_clean}'
+    url_b = url_clean.encode('utf-8')
+    buf = bytearray()
+    buf.append(1)
+    buf.extend(struct.pack('<I', int(vercode)))
+    buf.extend(struct.pack('<I', len(url_b)))
+    buf.extend(url_b)
+    buf.extend(struct.pack('<I', int(source)))
+    buf.extend(struct.pack('<I', int(sub_type)))
+    buf.append(0)
+    buf.extend(struct.pack('<i', -1))
+    enc_params = xor_enc(bytes(buf), uid)
     if ck_val == 0:
         ck_val = compute_checksum(cmd, sub, seq, uid, bb=0, ty=1, ver=3)
     hdr = InnerPacketHeader(ck=ck_val, bb=0, ty=1, seq=seq, uid=uid, ver=3, cmd=cmd, sub=sub)
     return hdr.pack() + enc_params
 
-def build_preview_link_901_packet(uid: int, link_url: str, seq: int=-100, ck_val: int=0, vercode: int=260802903, source: int=6, sub_type: int=1001) -> bytes:
-    return build_join_group_by_link_901_packet(uid=uid, link_url=link_url, seq=seq, ck_val=ck_val)
+def build_preview_link_901_packet(uid: int, link_url: str, seq: int=-100, ck_val: int=0, vercode: int=260802903, source: int=1, sub_type: int=0) -> bytes:
+    return build_join_group_by_link_901_packet(uid=uid, link_url=link_url, seq=seq, ck_val=ck_val, vercode=vercode, source=source, sub_type=sub_type)
+
 
 def build_query_group_906_packet(uid: int, group_id: int, seq: int=-100, ck_val: int=0) -> bytes:
     cmd = 906
@@ -791,6 +805,17 @@ def build_query_group_906_packet(uid: int, group_id: int, seq: int=-100, ck_val:
     hdr = InnerPacketHeader(ck=ck_val, bb=0, ty=1, seq=seq, uid=uid, ver=3, cmd=cmd, sub=sub)
     return hdr.pack() + enc_params
 
+def build_query_user_profile_151_packet(uid: int, target_uid: int, seq: int = -100, ck_val: int = 0, vercode: int = 260802903, version: int = 0) -> bytes:
+    cmd = 151
+    sub = 4
+    buf = struct.pack('<I', int(target_uid) & 4294967295) + struct.pack('<I', version) + struct.pack('<I', vercode) + b'\x00'
+    enc_params = xor_enc(buf, uid)
+    if ck_val == 0:
+        ck_val = compute_checksum(cmd, sub, seq, uid, bb=0, ty=1, ver=3)
+    hdr = InnerPacketHeader(ck=ck_val, bb=0, ty=1, seq=seq, uid=uid, ver=3, cmd=cmd, sub=sub)
+    return hdr.pack() + enc_params
+
+
 def parse_d3_compressed_json(body: bytes, uid: int) -> Optional[Dict[str, Any]]:
     if not body or len(body) < 10:
         return None
@@ -799,24 +824,31 @@ def parse_d3_compressed_json(body: bytes, uid: int) -> Optional[Dict[str, Any]]:
     candidates = [body]
     if len(body) > 4:
         candidates.append(body[4:])
+    priority_offsets = [27, 0, 18, -18, 36, -36]
+    all_offsets = priority_offsets + [o for o in range(-50, 50) if o not in priority_offsets]
     for b in candidates:
-        for offset in range(-50, 50):
+        for offset in all_offsets:
             a4 = len(b) + offset
             le4 = a4.to_bytes(4, 'little', signed=True)
             k = bytes((XK[i % 32] ^ le4[i % 4] ^ ule[i % 4] for i in range(32)))
             dec = bytes([b[i] ^ k[i % 32] for i in range(len(b))])
-            if dec.startswith(b'\x1f\x8b'):
-                for w in (16 + zlib.MAX_WBITS, 31, 15, -15):
+            for w in (31, 16 + zlib.MAX_WBITS, 15, -15):
+                try:
+                    d_out = zlib.decompress(dec if (w != -15 or not dec.startswith(b'\x1f\x8b')) else dec[10:], w)
+                    txt = d_out.decode('utf-8', errors='ignore')
+                    js = None
                     try:
-                        d_out = zlib.decompress(dec if w != -15 else dec[10:], w)
-                        txt = d_out.decode('utf-8', errors='ignore')
-                        res: Dict[str, Any] = {}
-                        try:
-                            js = json.loads(txt)
-                            if isinstance(js, dict):
-                                res.update(js)
-                        except Exception:
-                            pass
+                        js = json.loads(txt)
+                    except Exception:
+                        pass
+                    if js is not None and isinstance(js, dict):
+                        res: Dict[str, Any] = dict(js)
+                        item = js.get('data', {}).get('item', {}) if isinstance(js.get('data'), dict) else (js.get('item', {}) if isinstance(js.get('item'), dict) else {})
+                        if isinstance(item, dict) and 'gid' in item and 'group_id' not in res:
+                            try:
+                                res['group_id'] = int(item['gid'])
+                            except Exception:
+                                pass
                         m_err = re.search('code[^\\d]*(\\d+)', txt)
                         if m_err and 'error_code' not in res:
                             ec = int(m_err.group(1))
@@ -828,30 +860,6 @@ def parse_d3_compressed_json(body: bytes, uid: int) -> Optional[Dict[str, Any]]:
                             res['group_id'] = int(m_gid.group(1))
                         res['raw_text'] = txt
                         return res
-                    except Exception:
-                        pass
-            for w in (-15, 15, 0):
-                try:
-                    d_out = zlib.decompress(dec, w)
-                    txt = d_out.decode('utf-8', errors='ignore')
-                    res = {}
-                    try:
-                        js = json.loads(txt)
-                        if isinstance(js, dict):
-                            res.update(js)
-                    except Exception:
-                        pass
-                    m_err = re.search('code[^\\d]*(\\d+)', txt)
-                    if m_err and 'error_code' not in res:
-                        ec = int(m_err.group(1))
-                        if ec == 7002:
-                            ec = 17002
-                        res['error_code'] = ec
-                    m_gid = re.search('(?:groupId|grid|id)[^\\d]*(\\d{6,15})', txt)
-                    if m_gid and 'group_id' not in res:
-                        res['group_id'] = int(m_gid.group(1))
-                    res['raw_text'] = txt
-                    return res
                 except Exception:
                     pass
     return None

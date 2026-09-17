@@ -38,7 +38,7 @@ class ZaloClient:
         self.group_message = GroupMessageAPI(session_path=active_session_arg, socket_client=self._socket)
         self.group_info = GroupInfoAPI(session_path=active_session_arg, socket_client=self._socket)
         self.properties = PropertiesAPI(session_path=active_session_arg, socket_client=self._socket)
-        self.users = UserAPI(session_path=active_session_arg)
+        self.users = UserAPI(session_path=active_session_arg, socket_client=self._socket)
         self.user = self.users
         self.messages = MessageAPI(self._socket)
         self.groups = self.group
@@ -50,7 +50,7 @@ class ZaloClient:
     @socket.setter
     def socket(self, sock: Optional[ZaloSocketClient]):
         self._socket = sock
-        for attr in ('send', 'group', 'group_action', 'group_message', 'group_info', 'properties', 'messages', 'groups'):
+        for attr in ('send', 'group', 'group_action', 'group_message', 'group_info', 'properties', 'messages', 'groups', 'users', 'user'):
             if hasattr(self, attr):
                 obj = getattr(self, attr)
                 if obj and hasattr(obj, '_socket'):
@@ -289,4 +289,52 @@ class ZaloClient:
 
     def disconnect(self):
         self.close()
+
+    # --- Short & Professional API Aliases ---
+    send_msg = send_message
+    send_group_msg = send_group_message
+    send_user_message = send_1to1_message
+    send_direct_message = send_1to1_message
+    send_dm = send_1to1_message
+
+    react = send_reaction
+    pin = pin_message
+    unpin = unpin_message
+    kick = remove_member
+    ban_member = block_group_member
+    ban = block_group_member
+    leave = leave_group
+    disband = disband_group
+
+    delete_msg = delete_message
+    recall_msg = recall_message
+    revoke_message = recall_message
+    revoke_msg = recall_message
+
+    preview_group = preview_group_link
+    preview_link = preview_group_link
+    resolve_group_id = resolve_group_id_from_link
+
+    list_groups = get_group_list
+    list_all_groups = get_all_groups
+    all_groups = get_all_groups
+    get_group = get_group_detail
+
+    get_profile = get_user_profile
+    fetch_profile = get_user_profile
+    list_friends = get_friends
+    list_friend_pages = get_friend_list
+    add_friend = send_friend_request
+    request_friend = send_friend_request
+    accept_friend = accept_friend_request
+    reject_friend = reject_friend_request
+
+    send_img = send_photo
+    send_group_img = send_group_photo
+    send_1to1_img = send_1to1_photo
+    send_vid = send_video
+    send_group_vid = send_group_video
+    send_1to1_vid = send_1to1_video
+
+
 ZaloAPI = ZaloClient
