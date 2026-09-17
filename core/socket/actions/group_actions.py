@@ -47,7 +47,7 @@ class GroupActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi lệnh giải tán Group {group_id} qua Socket (CMD 242 SUB 0, Seq={seq})')
+            logger.debug(f'Đã gửi lệnh giải tán Group {group_id} qua Socket (CMD 242 SUB 0, Seq={seq})')
             if wait_response:
                 got_ack, ack_res = self._wait_cmd_ack(CMD_DISBAND_GROUP, timeout=timeout)
                 status = ack_res.get('status_code', -1) if got_ack else -1
@@ -75,7 +75,7 @@ class GroupActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi lệnh xoá {uids} khỏi Group {group_id} (CMD 228)')
+            logger.debug(f'Đã gửi lệnh xoá {uids} khỏi Group {group_id} (CMD 228)')
             return True
         except Exception as e:
             logger.error(f'Lỗi xoá member: {e}')
@@ -99,7 +99,7 @@ class GroupActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi lệnh ban (chặn vào lại) thành viên {uids} khỏi Group {group_id} qua Socket (CMD 234)')
+            logger.debug(f'Đã gửi lệnh ban (chặn vào lại) thành viên {uids} khỏi Group {group_id} qua Socket (CMD 234)')
             return True
         except Exception as e:
             logger.error(f'Lỗi kick/ban thành viên: {e}')
@@ -127,7 +127,7 @@ class GroupActionsMixin:
                     self.sock.sendall(outer_225)
                     self.sock.sendall(outer_239)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi yêu cầu rời Group {gid} qua Socket (CMD 225 SUB 3 & CMD 239 SUB 1)')
+            logger.debug(f'Đã gửi yêu cầu rời Group {gid} qua Socket (CMD 225 SUB 3 & CMD 239 SUB 1)')
             if wait_response:
                 got_ack, ack_res = self._wait_cmd_ack(CMD_LEAVE_GROUP_225, timeout=timeout)
                 if not got_ack:
@@ -156,7 +156,7 @@ class GroupActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi lệnh thêm thành viên {uids} vào Group {group_id}')
+            logger.debug(f'Đã gửi lệnh thêm thành viên {uids} vào Group {group_id}')
             return True
         except Exception as e:
             logger.error(f'Lỗi thêm thành viên: {e}')
@@ -184,7 +184,7 @@ class GroupActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi yêu cầu tham gia Group {gid} qua Socket (CMD 2000 & 246)')
+            logger.debug(f'Đã gửi yêu cầu tham gia Group {gid} qua Socket (CMD 2000 & 246)')
             return True
         except Exception as e:
             logger.error(f'Lỗi tham gia nhóm qua socket: {e}')
@@ -208,7 +208,7 @@ class GroupActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f"Đã gửi yêu cầu Preview link '{link_url}' qua Socket (CMD 901 SUB 3)")
+            logger.debug(f"Đã gửi yêu cầu Preview link '{link_url}' qua Socket (CMD 901 SUB 3)")
             if wait_response:
                 got_ack, ack_res = self._wait_cmd_ack(901, timeout=timeout)
                 return {
@@ -273,7 +273,7 @@ class GroupActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f"CMD 901 SUB 3: Gửi join nhóm qua link '{full_url}'")
+            logger.debug(f"CMD 901 SUB 3: Gửi join nhóm qua link '{full_url}'")
             if not wait_response:
                 return True
             got_902, res_902 = self._wait_cmd_ack(902, timeout=timeout)
@@ -291,7 +291,7 @@ class GroupActionsMixin:
                         if new_groups:
                             result_gid = int(next(iter(new_groups)))
                             break
-                logger.info(f"CMD 902: Join {('THÀNH CÔNG' if is_success else 'THẤT BẠI')} (error_code={ec}), GID={result_gid or 'N/A'}")
+                logger.debug(f"CMD 902: Join {('THÀNH CÔNG' if is_success else 'THẤT BẠI')} (error_code={ec}), GID={result_gid or 'N/A'}")
                 return {'sent': True, 'got_response': True, 'success': is_success, 'status_code': ec, 'group_id': result_gid or None, 'cmd': 902, 'ack_result': res_902}
             deadline = time.time() + 2.0
             while time.time() < deadline:
@@ -326,7 +326,7 @@ class GroupActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi yêu cầu chấp nhận lời mời Group {gid} qua Socket (CMD 250)')
+            logger.debug(f'Đã gửi yêu cầu chấp nhận lời mời Group {gid} qua Socket (CMD 250)')
             return True
         except Exception as e:
             logger.error(f'Lỗi chấp nhận lời mời nhóm qua socket: {e}')
@@ -348,7 +348,7 @@ class GroupActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f"Đã gửi yêu cầu tham gia/link Group (GID={gid}, Link='{link_url}') qua Socket (CMD 244 SUB 4)")
+            logger.debug(f"Đã gửi yêu cầu tham gia/link Group (GID={gid}, Link='{link_url}') qua Socket (CMD 244 SUB 4)")
             if wait_response:
                 got_ack, ack_res = self._wait_cmd_ack(CMD_REQUEST_JOIN_GROUP, timeout=timeout)
                 result_gid = ack_res.get('group_id')

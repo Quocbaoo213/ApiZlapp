@@ -37,7 +37,7 @@ def save_session_file(session_data: dict, filepath: str='fresh_session.json'):
         os.makedirs(target_dir, exist_ok=True)
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(session_data, f, ensure_ascii=False, indent=2)
-    logger.info(f'Đã lưu session vào {filepath}')
+    logger.debug(f'Đã lưu session vào {filepath}')
 
 class SessionManager:
 

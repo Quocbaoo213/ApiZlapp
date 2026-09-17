@@ -18,7 +18,7 @@ class PollActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f"Đã gửi lệnh tạo Poll trong nhóm {gid}: '{question}' ({len(options)} lựa chọn)")
+            logger.debug(f"Đã gửi lệnh tạo Poll trong nhóm {gid}: '{question}' ({len(options)} lựa chọn)")
             return True
         except Exception as e:
             logger.error(f'Lỗi khi tạo bình chọn trong nhóm {group_id}: {e}')

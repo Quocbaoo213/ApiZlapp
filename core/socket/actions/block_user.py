@@ -19,7 +19,7 @@ class BlockUserActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f"Đã gửi lệnh {('chặn' if is_block else 'bỏ chặn')} User {t_uid} qua Socket (CMD {cmd} SUB 0)")
+            logger.debug(f"Đã gửi lệnh {('chặn' if is_block else 'bỏ chặn')} User {t_uid} qua Socket (CMD {cmd} SUB 0)")
             return True
         except Exception as e:
             logger.error(f'Lỗi chặn user: {e}')

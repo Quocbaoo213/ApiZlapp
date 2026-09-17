@@ -30,7 +30,7 @@ class UserActionsMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f"Đã gửi yêu cầu tra cứu Profile User {t_uid} qua Socket (CMD 151 SUB 4)")
+            logger.debug(f"Đã gửi yêu cầu tra cứu Profile User {t_uid} qua Socket (CMD 151 SUB 4)")
             if wait_response:
                 got_ack, ack_res = self._wait_cmd_ack(151, timeout=timeout)
                 return {

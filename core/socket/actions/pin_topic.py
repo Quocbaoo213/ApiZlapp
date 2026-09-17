@@ -17,7 +17,7 @@ class PinTopicActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi yêu cầu ghim tin nhắn (GID={group_id}, MsgID={global_msg_id or cli_msg_id}) qua Socket (CMD 1752 SUB 2)')
+            logger.debug(f'Đã gửi yêu cầu ghim tin nhắn (GID={group_id}, MsgID={global_msg_id or cli_msg_id}) qua Socket (CMD 1752 SUB 2)')
             return True
         except Exception as e:
             logger.error(f'Lỗi ghim tin nhắn: {e}')
@@ -36,7 +36,7 @@ class PinTopicActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi yêu cầu bỏ ghim tin nhắn (GID={gid}, TopicID={tid}) qua Socket (CMD 1708 SUB 0)')
+            logger.debug(f'Đã gửi yêu cầu bỏ ghim tin nhắn (GID={gid}, TopicID={tid}) qua Socket (CMD 1708 SUB 0)')
             return True
         except Exception as e:
             logger.error(f'Lỗi bỏ ghim tin nhắn: {e}')
@@ -58,7 +58,7 @@ class PinTopicActionMixin:
                 if self.sock:
                     self.sock.sendall(outer)
             self.last_traffic = time.time()
-            logger.info(f'Đã gửi yêu cầu lấy danh sách ghim nhóm {gid} qua Socket (CMD 1703 SUB 0)')
+            logger.debug(f'Đã gửi yêu cầu lấy danh sách ghim nhóm {gid} qua Socket (CMD 1703 SUB 0)')
             if not wait_response:
                 return True
             time.sleep(min(timeout, 0.5))

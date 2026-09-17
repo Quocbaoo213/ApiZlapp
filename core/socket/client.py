@@ -182,7 +182,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
             return True
         self.current_host, self.current_port, srv_pk = self._select_socket_server()
         self.current_pubkey = srv_pk or self.server_pubkey_b64
-        logger.info(f'Đang kết nối tới Zalo Gateway: {self.current_host}:{self.current_port}...')
+        logger.debug(f'Đang kết nối tới Zalo Gateway: {self.current_host}:{self.current_port}...')
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.settimeout(10.0)
@@ -190,11 +190,11 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
             http_req = f'GET / HTTP/1.1\r\nHost: {self.current_host}\r\nUser-Agent: Mozilla/5.0\r\n\r\n'.encode('utf-8')
             self.sock.sendall(http_req)
             if self.session_key and self.ksid and self.current_pubkey:
-                logger.info('Tự động sinh PROV Frame 0 (X25519 ECDH)...')
+                logger.debug('Tự động sinh PROV Frame 0 (X25519 ECDH)...')
                 prov_frame_bytes = build_prov_frame(session_key=self.session_key, dk=self.dk, ksid=self.ksid, server_pubkey_b64=self.current_pubkey, uid=self.uid)
                 self.sock.sendall(prov_frame_bytes)
             elif self.f0_bytes:
-                logger.info('Sử dụng ticket frame0.bin nạp sẵn...')
+                logger.debug('Sử dụng ticket frame0.bin nạp sẵn...')
                 raw_f0 = struct.pack('<IB', len(self.f0_bytes) + 5, FRAME_TYPE_HANDSHAKE) + self.f0_bytes
                 self.sock.sendall(raw_f0)
             else:
@@ -210,7 +210,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                 pass
             self.sock.setblocking(True)
             self.sock.settimeout(None)
-            logger.info('Đang gửi chuỗi khung khởi tạo Active Session...')
+            logger.debug('Đang gửi chuỗi khung khởi tạo Active Session...')
             send_init_frames(self.sock, self.dk, self.uid, send_lock=self.send_lock)
             self.is_connected = True
             self.is_running = True
@@ -240,7 +240,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
             except Exception:
                 pass
             self.sock = None
-        logger.info('Đã đóng kết nối Socket.')
+        logger.debug('Đã đóng kết nối Socket.')
 
     def disconnect(self):
         self.close()
@@ -322,7 +322,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                                                 pass
                                     if cmd == 902 and ack_dict.get('status_code') == 0:
                                         ack_dict['join_success'] = True
-                                        logger.info(f"CMD 902 SUB {sub}: Join nhóm thành công! GID={ack_dict.get('group_id', '?')}")
+                                        logger.debug(f"CMD 902 SUB {sub}: Join nhóm thành công! GID={ack_dict.get('group_id', '?')}")
                                 except Exception:
                                     pass
                                 if cmd == 902:

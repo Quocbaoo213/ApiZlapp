@@ -32,7 +32,7 @@ class PasswordAuth:
                 with open(self.zcid_path, 'r', encoding='utf-8') as f:
                     cached = f.read().strip()
                 if is_valid_zcid(cached):
-                    logger.info(f'Su dung ZCID tu file: {cached[:24]}...')
+                    logger.debug(f'Su dung ZCID tu file: {cached[:24]}...')
                     return cached
                 else:
                     logger.warning('ZCID trong file khong hop le, sinh moi.')
@@ -40,7 +40,7 @@ class PasswordAuth:
                 logger.warning(f'Loi doc ZCID file ({e}), sinh moi.')
         new_zcid = gen_zcid96()
         self._save_zcid_to_file(new_zcid)
-        logger.info(f'Da sinh ZCID moi: {new_zcid[:24]}...')
+        logger.debug(f'Da sinh ZCID moi: {new_zcid[:24]}...')
         return new_zcid
 
     def _save_zcid_to_file(self, val: str):
@@ -53,7 +53,7 @@ class PasswordAuth:
     def authenticate(self, phone: str, password: str, real_friends: Optional[List[str]]=None, out_session_path: str='fresh_session.json', zaloprefs_path: Optional[str]=None, target_uid: Optional[str | int]=None, probe_socket: bool=True) -> Dict[str, Any]:
         ph = norm_phone(phone)
         t_start = time.time()
-        logger.info('Xac thuc so dien thoai (phone/verify)...')
+        logger.debug('Xac thuc so dien thoai (phone/verify)...')
         p1 = base_params(self.zcid, ph, password)
         p1.update({'password': '', 'imei': f'{secrets.randbelow(9 * 10 ** 14) + 10 ** 14}', 'android_id': secrets.token_hex(8), 'device_spec_id': f'samsung-{secrets.token_hex(8)}', 'serial_number': f'R58M{secrets.token_hex(6).upper()}', 'device_identifier': '', 'zcid': '1_' + self.zcid})
         r1 = http_post_curl(f'{REG_URL}/api/v1/login/phone/verify', enc_body(p1, self.zcid, self.api_key, self.secret), self.zcid)
@@ -72,7 +72,7 @@ class PasswordAuth:
             st = (r1.get('data') or {}).get('sessionToken', '')
         if ec1 not in (0, None) and (not st):
             raise ValueError(f"Xac thuc so dien thoai that bai: {r1.get('error_message', json.dumps(r1))}")
-        logger.info('Gui thong tin dang nhap (activeAccountByPassword)...')
+        logger.debug('Gui thong tin dang nhap (activeAccountByPassword)...')
         p2 = dict(p1)
         p2['password'] = pwd_hash(ph, password)
         if st:
@@ -96,7 +96,7 @@ class PasswordAuth:
         try:
             vt = TwoFactorAuth.execute_2fa_flow(session_token_2fa)
             if vt:
-                logger.info('Xac thuc 2FA (verifyAccount)...')
+                logger.debug('Xac thuc 2FA (verifyAccount)...')
                 pb = base_params(self.zcid, ph, password)
                 pb.update({'imei': p1['imei'], 'android_id': p1['android_id'], 'device_spec_id': p1['device_spec_id'], 'serial_number': p1['serial_number'], 'device_identifier': '', 'zcid': '1_' + self.zcid, 'verificationToken': vt, 'ckeyset': 'AAAVH3sm6OE', 'ts': '0', 'local_time': str(int(time.time() * 1000))})
                 rb = http_post_curl(f'{REG_URL}/api/register/verifyAccount', enc_body(pb, self.zcid, self.api_key, self.secret), self.zcid)
@@ -113,7 +113,7 @@ class PasswordAuth:
             at = FriendAuth.execute_friend_flow(session=session_token_2fa, zcid=self.zcid, cookie=cookie_2fa, real_friends=real_friends)
             if not at:
                 raise PermissionError('Khong the hoan tat xac thuc 2 buoc.')
-            logger.info('Xac thuc qua danh sach ban be...')
+            logger.debug('Xac thuc qua danh sach ban be...')
             pb = base_params(self.zcid, ph, password)
             pb.update({'imei': p1['imei'], 'android_id': p1['android_id'], 'device_spec_id': p1['device_spec_id'], 'serial_number': p1['serial_number'], 'device_identifier': '', 'zcid': '1_' + self.zcid, 'verificationToken': at, 'ckeyset': 'AAAVH3sm6OE', 'ts': '0', 'local_time': str(int(time.time() * 1000))})
             rb = http_post_curl(f'{REG_URL}/api/register/verifyAccount', enc_body(pb, self.zcid, self.api_key, self.secret), self.zcid)
@@ -145,13 +145,13 @@ class PasswordAuth:
         dk_bytes = base64.b64decode(dk_raw) if isinstance(dk_raw, str) and dk_raw.endswith('=') else bytes.fromhex(dk_raw) if isinstance(dk_raw, str) and len(dk_raw) == 64 else dk_raw if isinstance(dk_raw, bytes) else b''
         session_dict = {'uid': int(uid) if uid.isdigit() else 0, 'dk_hex': dk_bytes.hex(), 'dk_b64': base64.b64encode(dk_bytes).decode('utf-8'), 'ksid': ksid, 'session_key': sk, 'cryptkey': data.get('CrypKey', ''), 'sign': data.get('sign', ''), 'token': data.get('token', ''), 'ssPubKey': data.get('ssPubKey', ''), 'socketServers': servers, 'zcid': self.zcid, 'login_timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
         save_session_file(session_dict, out_session_path)
-        logger.info(f'Da luu session vao: {out_session_path}')
+        logger.debug(f'Da luu session vao: {out_session_path}')
         if probe_socket:
-            logger.info('Kiem tra ket noi Socket PROV...')
+            logger.debug('Kiem tra ket noi Socket PROV...')
             uid_int = int(uid) if uid.isdigit() else 0
             results, ok = probe_socket_authen(sk=sk, dk=dk_bytes, ksid=ksid, servers=servers[:8], uid_int=uid_int)
             if ok:
-                logger.info('Ket noi Socket PROV thanh cong!')
+                logger.debug('Ket noi Socket PROV thanh cong!')
         return session_dict
 
 def login(phone: str, password: str, real_friends: Optional[List[str]]=None, out_session_path: str='fresh_session.json', zcid: Optional[str]=None, renew_zcid: bool=False, zaloprefs_path: Optional[str]=None, target_uid: Optional[str | int]=None, probe_socket: bool=True) -> Dict[str, Any]:
