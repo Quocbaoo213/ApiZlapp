@@ -24,9 +24,9 @@ class Quote:
 
 @dataclass
 class Message:
-    text: str
-    from_uid: int
-    from_name: str
+    text: str = ""
+    from_uid: int = 0
+    from_name: str = ""
     group_id: Optional[int] = None
     is_group: bool = False
     msg_id: int = 0

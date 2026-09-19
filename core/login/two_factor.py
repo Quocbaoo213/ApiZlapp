@@ -34,51 +34,92 @@ class TwoFactorAuth:
         blocked: Set[int] = set()
         try:
             rhtml = cls.get_webview_html(session)
-            for m in re.finditer('<div class="login-option"[^>]*>(.*?)<hr class="divider"', rhtml, re.S):
-                blk_all = m.group(1)
-                mm0 = re.search('method="(\\d+)"', blk_all)
+            # Tách các khối login-option không phụ thuộc vào thẻ phân cách <hr class="divider">
+            blocks = re.findall(r'(<div class="login-option"[^>]*>.*?)(?=(?:<div class="login-option"|$))', rhtml, re.S)
+            for blk_all in blocks:
+                mm0 = re.search(r'method="(\d+)"', blk_all)
                 if not mm0:
                     continue
                 mid = int(mm0.group(1))
                 methods.append(mid)
-                dm = re.search('button-description">(.*?)</div>', blk_all, re.S)
-                desc = re.sub('<[^>]+>|\\s+', ' ', dm.group(1)).strip() if dm else ''
+                dm = re.search(r'button-description">(.*?)</div>', blk_all, re.S)
+                desc = re.sub(r'<[^>]+>|\s+', ' ', dm.group(1)).strip() if dm else ''
                 dests[mid] = desc
-                if re.search('dùng hết|hết số lần|không khả dụng|tạm thời', desc, re.I):
+                if re.search(r'dùng hết|hết số lần|không khả dụng|tạm thời', desc, re.I):
                     blocked.add(mid)
+
+            # Dự phòng nếu HTML có cấu trúc khác nhưng vẫn chứa thuộc tính method
+            if not methods:
+                all_m = re.findall(r'method="(\d+)"', rhtml)
+                for mid_str in all_m:
+                    mid = int(mid_str)
+                    if mid not in methods:
+                        methods.append(mid)
+
             methods = sorted(set(methods))
         except Exception as ex:
-            logger.warning(f'Loi phan tich HTML 2FA: {ex}')
+            logger.warning(f'Lỗi phân tích HTML 2FA: {ex}')
         return (methods, dests, blocked)
 
     @classmethod
     def execute_2fa_flow(cls, session: str, interactive: bool=True) -> Optional[str]:
-        names = {1: 'SMS', 2: 'email', 3: 'SĐT', 6: 'tổng đài OTP'}
+        names = {1: 'SMS', 2: 'Email', 3: 'Số điện thoại / Cuộc gọi', 6: 'Tổng đài OTP'}
         methods, dests, blocked = cls.extract_available_methods(session)
         avail = [m for m in methods if m not in blocked]
         logger.info('2FA webview verify...')
+
+        if not methods and not avail:
+            # Fallback nếu không parse được methods từ webview nhưng Zalo yêu cầu 2FA
+            avail = [6, 1, 3]
+
+        print('\n[2FA] Danh sách phương thức xác thực:')
+        display_list = methods if methods else avail
+        for mm in display_list:
+            mark = ' ⛔ [Đã hết lượt / Tạm khóa]' if mm in blocked else ''
+            desc = f' → {dests[mm]}' if dests.get(mm) else ''
+            print(f'  [{mm}] {names.get(mm, f"Phương thức {mm}")}{desc}{mark}')
+
+        if blocked:
+            print(f'  ⛔ Phương thức bị giới hạn: {[names.get(b, str(b)) for b in sorted(blocked)]}')
+
         if not avail:
-            return None
+            if methods and interactive:
+                try:
+                    ch = input(f'  ⚠️ Tất cả phương thức bị đánh dấu tạm khóa. Thử chọn {methods} (hoặc Enter để bỏ qua): ').strip()
+                    if ch.isdigit() and int(ch) in methods:
+                        avail = [int(ch)]
+                except (EOFError, KeyboardInterrupt):
+                    raise
+                except Exception:
+                    pass
+            if not avail:
+                print('  [!] Không có phương thức 2FA khả dụng.')
+                return None
+
         pick = avail[0]
         if len(avail) > 1 and interactive:
             try:
-                ch = input(f'Chon method {avail} (enter = {avail[0]}): ').strip()
+                ch = input(f'  👉 Chọn phương thức xác thực {avail} (mặc định = {avail[0]}): ').strip()
                 if ch.isdigit() and int(ch) in avail:
                     pick = int(ch)
             except (EOFError, KeyboardInterrupt):
                 raise
             except Exception:
                 pick = avail[0]
+        else:
+            print(f'  👉 Sử dụng phương thức: [{pick}] {names.get(pick, str(pick))}')
+
         nm = names.get(pick, str(pick))
         q2fa = urllib.parse.urlencode({'session': session, 'lang': 'vi'})
         r3m = cls.post_vc_json(f'{ZMVC_URL}/api/v1/2fa/methods?{q2fa}', session, {'method': pick})
         ec3m = r3m.get('error_code')
         if ec3m != 0:
+            logger.warning(f'Gửi mã qua method {pick} thất bại: {r3m.get("error_message") or ec3m}')
             return None
         vt = ''
         for attempt in range(3):
             try:
-                otp = input(f'Nhap ma ({nm}) [lan {attempt + 1}/3]: ').strip()
+                otp = input(f'  ✉️ Nhập mã ({nm}) [lần {attempt + 1}/3]: ').strip()
             except (EOFError, KeyboardInterrupt):
                 raise
             except Exception:
@@ -90,6 +131,8 @@ class TwoFactorAuth:
             vt = (r3v.get('data') or {}).get('verificationToken', '')
             if vt:
                 return vt
+            if attempt < 2:
+                print('  ⚠️ Mã không đúng hoặc đã hết hạn, vui lòng nhập lại...')
         return None
 
 class FriendAuth:

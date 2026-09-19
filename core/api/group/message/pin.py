@@ -10,7 +10,7 @@ class PinAPI(BaseAPI):
             logger.warning('Socket client chưa kết nối để ghim tin nhắn.')
             return False
         try:
-            return self._socket.pin_message(group_id=int(group_id), title=title, cli_msg_id=int(cli_msg_id or 0), global_msg_id=int(global_msg_id or 0), sender_name=sender_name)
+            return self._socket.pin_message(group_id=int(group_id), title=title, cli_msg_id=int(cli_msg_id or 0), global_msg_id=int(global_msg_id or 0), sender_name=sender_name, sender_uid=int(sender_uid or 0))
         except Exception as e:
             logger.error(f'Lỗi khi ghim tin nhắn trong Group {group_id}: {e}')
             return False

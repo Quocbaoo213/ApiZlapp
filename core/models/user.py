@@ -147,3 +147,20 @@ class UserProfile:
         if self.cover:
             lines.append(f'• Ảnh bìa       : {self.cover}')
         return '\n'.join(lines)
+
+    def __getitem__(self, item: str) -> Any:
+        if item in self.raw_data:
+            return self.raw_data[item]
+        if hasattr(self, item):
+            return getattr(self, item)
+        if item in ('userId', 'uid'):
+            return self.user_id
+        if item in ('displayName', 'dpn'):
+            return self.display_name
+        raise KeyError(item)
+
+    def get(self, item: str, default: Any = None) -> Any:
+        try:
+            return self[item]
+        except KeyError:
+            return default

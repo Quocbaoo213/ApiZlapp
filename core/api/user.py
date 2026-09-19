@@ -351,3 +351,6 @@ class UserAPI:
     add_friend = send_friend_request
     request_friend = send_friend_request
     format_profile = format_user_info
+    get_user_info = get_user_profile
+
+ZaloUserInfoAPI = UserAPI

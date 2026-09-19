@@ -76,8 +76,9 @@ class ZaloGroupErrorCode(IntEnum):
     OVER_JOIN_LIMIT = 17017
     OVER_OWN_LIMIT = 17018
     COMMUNITY_FULL = 17026
+    ALREADY_IN_GROUP = 18004
 
     @classmethod
     def get_message(cls, code: int) -> str:
-        messages = {0: 'Thao tác thành công', 17002: 'Nhóm không còn tồn tại (17002)', 17003: 'Nhóm đã đạt giới hạn tối đa số thành viên (17003)', 17005: 'Tài khoản của bạn đã bị chặn khỏi nhóm này (17005)', 17006: 'Liên kết tham gia nhóm đã hết hạn hoặc bị thu hồi (17006)', 17008: 'Yêu cầu tham gia nhóm đang ở hàng đợi chờ Trưởng/Phó nhóm duyệt (17008)', 17009: 'Bạn đã là thành viên của nhóm này rồi (17009)', 17017: 'Tài khoản đã đạt giới hạn tối đa số nhóm có thể tham gia (17017)', 17018: 'Tài khoản đã đạt giới hạn tối đa số nhóm có thể tạo/sở hữu (17018)', 17026: 'Cộng đồng đã đạt giới hạn thành viên (17026)'}
+        messages = {0: 'Thao tác thành công', 17002: 'Nhóm không còn tồn tại (17002)', 17003: 'Nhóm đã đạt giới hạn tối đa số thành viên (17003)', 17005: 'Tài khoản của bạn đã bị chặn khỏi nhóm này (17005)', 17006: 'Liên kết tham gia nhóm đã hết hạn hoặc bị thu hồi (17006)', 17008: 'Yêu cầu tham gia nhóm đang ở hàng đợi chờ Trưởng/Phó nhóm duyệt (17008)', 17009: 'Bạn đã là thành viên của nhóm này rồi (17009)', 17017: 'Tài khoản đã đạt giới hạn tối đa số nhóm có thể tham gia (17017)', 17018: 'Tài khoản đã đạt giới hạn tối đa số nhóm có thể tạo/sở hữu (17018)', 17026: 'Cộng đồng đã đạt giới hạn thành viên (17026)', 18004: 'Tài khoản đã là thành viên của nhóm này rồi (18004)'}
         return messages.get(code, f'Lỗi Zalo mã {code}')

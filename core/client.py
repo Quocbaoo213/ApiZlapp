@@ -133,8 +133,11 @@ class ZaloClient:
     def add_message_listener(self, handler: Callable[[Message], None]):
         self._message_handlers.append(handler)
 
-    def send_message(self, target_id: int, text: str, thread_type: ThreadType=ThreadType.GROUP, ttl_seconds: int=0, quote: Optional[Quote | Dict[str, Any]]=None) -> bool:
-        return self.send.send_message(thread_id=target_id, text=text, thread_type=thread_type, ttl=ttl_seconds, quote_data=quote.to_dict() if isinstance(quote, Quote) else quote)
+    def send_message(self, target_id: Union[int, str, Any] = 0, text: Union[str, Any] = "", thread_type: ThreadType = ThreadType.GROUP, ttl_seconds: int = 0, quote: Optional[Union[Quote, Dict[str, Any], bool]] = None, **kwargs) -> bool:
+        q_dict = quote.to_dict() if hasattr(quote, 'to_dict') else (quote if isinstance(quote, dict) else None)
+        return self.send.send_message(thread_id=target_id, text=text, thread_type=thread_type, ttl=ttl_seconds, quote_data=q_dict, **kwargs)
+
+    sendMessage = send_message
 
     def send_group_message(self, group_id: int, text: str, ttl_seconds: int=0, quote: Optional[Quote | Dict[str, Any]]=None) -> bool:
         return self.send_message(group_id, text, thread_type=ThreadType.GROUP, ttl_seconds=ttl_seconds, quote=quote)
@@ -164,11 +167,11 @@ class ZaloClient:
     def send_reaction(self, target_id: int, cli_msg_id: int, global_msg_id: int=0, icon: ReactionIcon | str=ReactionIcon.HEART, is_group: bool=True) -> bool:
         return self.send.send_reaction(target_id=target_id, cli_msg_id=cli_msg_id, global_msg_id=global_msg_id, icon=icon.value if isinstance(icon, ReactionIcon) else str(icon), is_group=is_group)
 
-    def pin_message(self, group_id: int, title: str='', cli_msg_id: int=0, global_msg_id: int=0, sender_name: str='Member') -> bool:
-        return self.group_message.pin_message(group_id=group_id, title=title, cli_msg_id=cli_msg_id, global_msg_id=global_msg_id, sender_name=sender_name)
+    def pin_message(self, group_id: int, title: str='', cli_msg_id: int=0, global_msg_id: int=0, sender_name: str='Member', sender_uid: int=0) -> bool:
+        return self.group_message.pin_message(group_id=group_id, title=title, cli_msg_id=cli_msg_id, global_msg_id=global_msg_id, sender_name=sender_name, sender_uid=sender_uid)
 
-    def unpin_message(self, group_id: int, global_msg_id: int=0, cli_msg_id: int=0) -> bool:
-        return self.group_message.unpin_message(group_id=group_id, global_msg_id=global_msg_id, cli_msg_id=cli_msg_id)
+    def unpin_message(self, group_id: int, topic_id: int=0, global_msg_id: int=0, cli_msg_id: int=0, **kwargs) -> bool:
+        return self.group_message.unpin_message(group_id=group_id, topic_id=topic_id, global_msg_id=global_msg_id, cli_msg_id=cli_msg_id, **kwargs)
 
     def remove_member(self, group_id: int, member_uids: Union[int, List[int]]) -> bool:
         return self._socket.remove_member(group_id=int(group_id), member_uids=member_uids) if self._socket else False
@@ -290,7 +293,6 @@ class ZaloClient:
     def disconnect(self):
         self.close()
 
-    # --- Short & Professional API Aliases ---
     send_msg = send_message
     send_group_msg = send_group_message
     send_user_message = send_1to1_message

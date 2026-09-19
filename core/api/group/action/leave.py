@@ -5,7 +5,7 @@ logger = logging.getLogger('core.api.group.action.leave')
 
 class LeaveAPI(BaseAPI):
 
-    def leave_group(self, group_id: Union[int, str], new_owner_id: Union[int, str]=0, silent: bool=False, block_readd: bool=False, wait_response: bool=True, timeout: float=5.0) -> Union[bool, Dict[str, Any]]:
+    def leave_group(self, group_id: Union[int, str], new_owner_id: Union[int, str]=0, silent: bool=False, block_readd: bool=False, wait_response: bool=False, timeout: float=1.5) -> Union[bool, Dict[str, Any]]:
         if not self._socket or not getattr(self._socket, 'is_connected', False):
             logger.warning('Socket client chưa kết nối để rời nhóm.')
             return {'sent': False, 'error': 'Socket not connected'} if wait_response else False

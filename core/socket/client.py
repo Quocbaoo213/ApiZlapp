@@ -8,9 +8,27 @@ import struct
 import threading
 import time
 from typing import Callable, Optional, Dict, Any, List, Tuple, Union
-from .crypto import encrypt_aes_gcm, decrypt_aes_gcm, decrypt_e2ee_cbc, DEFAULT_XK
-from .protocol import INNER_HEADER_FORMAT, InnerPacketHeader, OuterFrame, compute_checksum, xor_encode_d3, xor_decode_d3, dekey, XK, parse_d3_compressed_json, build_ping_packet, build_outer_frame, parse_incoming_frame, FRAME_TYPE_HANDSHAKE, FRAME_TYPE_DATA, FRAME_TYPE_CONTROL, CMD_PING, SUB_PING
-from .handshake import build_prov_frame, send_init_frames
+
+from core.socket.constants import (
+    DEFAULT_SERVERS,
+    FRAME_TYPE_HANDSHAKE,
+    FRAME_TYPE_DATA,
+    FRAME_TYPE_CONTROL,
+    CMD_PING,
+    SUB_PING,
+)
+from core.socket.frame import (
+    InnerPacketHeader,
+    OuterFrame,
+    compute_checksum,
+    build_outer_frame,
+)
+from core.socket.builder import build_ping_packet
+from core.socket.parser import parse_incoming_frame
+from core.socket.events import EventHub, MessageEvent, ReactionEvent
+from core.socket.dispatcher import PacketDispatcher
+from core.socket.handshake import build_prov_frame, send_init_frames
+
 from core.socket.actions.send_message import SendMessageActionMixin
 from core.socket.actions.send_image import SendImageActionMixin
 from core.socket.actions.send_video import SendVideoActionMixin
@@ -23,13 +41,55 @@ from core.socket.actions.undo_message import UndoMessageActionMixin
 from core.socket.actions.group_actions import GroupActionsMixin
 from core.socket.actions.block_user import BlockUserActionMixin
 from core.socket.actions.send_sticker import SendStickerActionMixin
+from core.socket.actions.send_location import SendLocationActionMixin
+from core.socket.actions.send_file import SendFileActionMixin
+from core.socket.actions.send_contact import SendContactActionMixin
 from core.socket.actions.user_actions import UserActionsMixin
+
 logger = logging.getLogger('core.socket.client')
-DEFAULT_SERVERS = [{'host': '49.213.95.83', 'port': 443}, {'host': '49.213.95.87', 'port': 443}, {'host': '49.213.95.90', 'port': 443}, {'host': '49.213.95.92', 'port': 443}, {'host': '49.213.95.96', 'port': 443}, {'host': '49.213.95.74', 'port': 443}, {'host': '49.213.95.77', 'port': 443}, {'host': '49.213.95.86', 'port': 443}]
 
-class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoActionMixin, SendDoodleActionMixin, SendStickerActionMixin, SendReactionActionMixin, SendTypingActionMixin, PinTopicActionMixin, PollActionMixin, UndoMessageActionMixin, GroupActionsMixin, BlockUserActionMixin, UserActionsMixin):
 
-    def __init__(self, uid: int, dk: bytes, cryptkey: Optional[bytes]=None, session_key: Optional[str]=None, ksid: Optional[str]=None, server_pubkey_b64: Optional[str]=None, frame0_path: Optional[str]=None, init_sequence_path: Optional[str]=None, server_pool: Optional[List[Dict[str, Any]]]=None, state_file: Optional[str]=None, on_message_callback: Optional[Callable[[Dict[str, Any]], None]]=None, ping_interval: float=10.0, debug: bool=False):
+class ZaloSocketClient(
+    SendMessageActionMixin,
+    SendImageActionMixin,
+    SendVideoActionMixin,
+    SendDoodleActionMixin,
+    SendStickerActionMixin,
+    SendLocationActionMixin,
+    SendFileActionMixin,
+    SendContactActionMixin,
+    SendReactionActionMixin,
+    SendTypingActionMixin,
+    PinTopicActionMixin,
+    PollActionMixin,
+    UndoMessageActionMixin,
+    GroupActionsMixin,
+    BlockUserActionMixin,
+    UserActionsMixin
+):
+    """
+    Zalo Socket Client
+    High-performance, event-driven socket client for Zalo binary protocol.
+    Provides typed event subscriptions (on_message, on_reaction, on_delivery)
+    and full action mixins.
+    """
+
+    def __init__(
+        self,
+        uid: int,
+        dk: bytes,
+        cryptkey: Optional[bytes] = None,
+        session_key: Optional[str] = None,
+        ksid: Optional[str] = None,
+        server_pubkey_b64: Optional[str] = None,
+        frame0_path: Optional[str] = None,
+        init_sequence_path: Optional[str] = None,
+        server_pool: Optional[List[Dict[str, Any]]] = None,
+        state_file: Optional[str] = None,
+        on_message_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+        ping_interval: float = 10.0,
+        debug: bool = False
+    ):
         self.uid = int(uid)
         self.dk = dk
         self.cryptkey = cryptkey or bytes(16)
@@ -44,6 +104,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
         self.on_message_callback = on_message_callback
         self.ping_interval = ping_interval
         self.debug = debug
+
         self.sock: Optional[socket.socket] = None
         self.is_connected = False
         self.is_running = False
@@ -52,21 +113,47 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
         self.current_host = None
         self.current_port = None
         self.current_pubkey = None
+
         self._last_save = 0.0
         self._save_interval = 5.0
         self.send_lock = threading.Lock()
         self.recv_thread: Optional[threading.Thread] = None
         self.ping_thread: Optional[threading.Thread] = None
         self.supervisor_thread: Optional[threading.Thread] = None
+
         self.seq_lock = threading.Lock()
         self.current_seq = -40
         self._load_or_init_state()
+
         self.ack_lock = threading.Lock()
         self.general_ack_event = threading.Event()
         self.last_ack_result: Dict[str, Any] = {}
         self.cmd_ack_events: Dict[int, threading.Event] = {}
         self.cmd_ack_results: Dict[int, Dict[str, Any]] = {}
         self.known_groups: Dict[str, Dict[str, Any]] = {}
+
+        self.event_hub = EventHub()
+        self.dispatcher = PacketDispatcher(self)
+
+    def on_message(self, handler: Callable[[MessageEvent], None]):
+        """Register a handler for incoming chat messages (typed MessageEvent)."""
+        self.event_hub.on('message', handler)
+        return handler
+
+    def on_reaction(self, handler: Callable[[ReactionEvent], None]):
+        """Register a handler for reaction push events (typed ReactionEvent)."""
+        self.event_hub.on('reaction', handler)
+        return handler
+
+    def on_delivery(self, handler: Callable[[Dict[str, Any]], None]):
+        """Register a handler for delivery receipts (CMD 202)."""
+        self.event_hub.on('delivery', handler)
+        return handler
+
+    def on_frame(self, handler: Callable[[Dict[str, Any]], None]):
+        """Register a handler for raw parsed frames."""
+        self.event_hub.on('frame', handler)
+        return handler
 
     def _prepare_cmd_ack(self, cmd: int):
         with self.ack_lock:
@@ -77,7 +164,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
             self.cmd_ack_results.pop(cmd, None)
             self.general_ack_event.clear()
 
-    def _wait_cmd_ack(self, cmd: int, timeout: float=5.0) -> Tuple[bool, Dict[str, Any]]:
+    def _wait_cmd_ack(self, cmd: int, timeout: float = 5.0) -> Tuple[bool, Dict[str, Any]]:
         with self.ack_lock:
             if cmd not in self.cmd_ack_events:
                 self.cmd_ack_events[cmd] = threading.Event()
@@ -91,7 +178,12 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
         search_paths = []
         if self.frame0_path:
             search_paths.append(self.frame0_path)
-        search_paths.extend([os.path.join(os.getcwd(), 'frame0.bin'), 'frame0.bin', os.path.expanduser('~/.zalo/frame0.bin'), '/root/zalo/frame0.bin'])
+        search_paths.extend([
+            os.path.join(os.getcwd(), 'frame0.bin'),
+            'frame0.bin',
+            os.path.expanduser('~/.zalo/frame0.bin'),
+            '/root/zalo/frame0.bin'
+        ])
         for p in search_paths:
             if p and os.path.isfile(p):
                 try:
@@ -106,7 +198,11 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
     def _resolve_state_file(self) -> Optional[str]:
         if self.state_file:
             return self.state_file
-        candidates = [os.path.join(os.getcwd(), '.session_state.json'), os.path.expanduser('~/.zalo/.session_state.json'), '/root/zalo/.session_state.json']
+        candidates = [
+            os.path.join(os.getcwd(), '.session_state.json'),
+            os.path.expanduser('~/.zalo/.session_state.json'),
+            '/root/zalo/.session_state.json'
+        ]
         for c in candidates:
             if os.path.isfile(c):
                 return c
@@ -125,9 +221,9 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
             except Exception:
                 pass
 
-    def _save_state(self, force: bool=False):
+    def _save_state(self, force: bool = False):
         now = time.time()
-        if force or now - self._last_save >= self._save_interval:
+        if force or (now - self._last_save >= self._save_interval):
             self._last_save = now
             sf = self._resolve_state_file()
             if sf:
@@ -155,7 +251,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
 
     def _next_ck_val(self) -> int:
         with self.seq_lock:
-            self.ck_val = self.ck_val + 1 & 4294967295
+            self.ck_val = (self.ck_val + 1) & 4294967295
             return self.ck_val
 
     def _get_next_counters(self) -> Tuple[int, int, int]:
@@ -164,7 +260,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
             seq = self.current_seq
             self.cmsg_id += 1
             cmsg = self.cmsg_id
-            self.ck_val = self.ck_val + 1 & 4294967295
+            self.ck_val = (self.ck_val + 1) & 4294967295
             ck = self.ck_val
             self._save_state_if_needed()
             return (seq, cmsg, ck)
@@ -182,23 +278,32 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
             return True
         self.current_host, self.current_port, srv_pk = self._select_socket_server()
         self.current_pubkey = srv_pk or self.server_pubkey_b64
-        logger.debug(f'Đang kết nối tới Zalo Gateway: {self.current_host}:{self.current_port}...')
+        logger.info(f'[Socket] Connecting to {self.current_host}:{self.current_port}...')
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.settimeout(10.0)
             self.sock.connect((self.current_host, self.current_port))
+
             http_req = f'GET / HTTP/1.1\r\nHost: {self.current_host}\r\nUser-Agent: Mozilla/5.0\r\n\r\n'.encode('utf-8')
             self.sock.sendall(http_req)
+
             if self.session_key and self.ksid and self.current_pubkey:
-                logger.debug('Tự động sinh PROV Frame 0 (X25519 ECDH)...')
-                prov_frame_bytes = build_prov_frame(session_key=self.session_key, dk=self.dk, ksid=self.ksid, server_pubkey_b64=self.current_pubkey, uid=self.uid)
+                logger.debug('[Handshake] Generating PROV Frame 0 (X25519 ECDH)...')
+                prov_frame_bytes = build_prov_frame(
+                    session_key=self.session_key,
+                    dk=self.dk,
+                    ksid=self.ksid,
+                    server_pubkey_b64=self.current_pubkey,
+                    uid=self.uid
+                )
                 self.sock.sendall(prov_frame_bytes)
             elif self.f0_bytes:
-                logger.debug('Sử dụng ticket frame0.bin nạp sẵn...')
+                logger.debug('[Handshake] Using preloaded frame0 ticket...')
                 raw_f0 = struct.pack('<IB', len(self.f0_bytes) + 5, FRAME_TYPE_HANDSHAKE) + self.f0_bytes
                 self.sock.sendall(raw_f0)
             else:
-                raise ValueError('Thiếu thông tin xác thực để sinh hoặc nạp Frame 0 Handshake!')
+                raise ValueError('Missing credentials to build or load Frame 0 handshake!')
+
             time.sleep(0.15)
             self.sock.setblocking(False)
             try:
@@ -208,25 +313,32 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                         break
             except BlockingIOError:
                 pass
+
             self.sock.setblocking(True)
             self.sock.settimeout(None)
-            logger.debug('Đang gửi chuỗi khung khởi tạo Active Session...')
+
+            logger.debug('[Handshake] Sending active session initialization sequence...')
             send_init_frames(self.sock, self.dk, self.uid, send_lock=self.send_lock)
+
             self.is_connected = True
             self.is_running = True
             self.handshake_ok = True
             self.last_traffic = time.time()
-            logger.info(f'Kết nối và kích hoạt phiên Socket thành công với UID {self.uid}!')
+            logger.info(f'[Socket] Connected and session active (UID: {self.uid})')
+
             self.recv_thread = threading.Thread(target=self._recv_loop, name='ZaloSocketRecv', daemon=True)
             self.recv_thread.start()
+
             self.ping_thread = threading.Thread(target=self._ping_loop, name='ZaloSocketPing', daemon=True)
             self.ping_thread.start()
+
             if not self.supervisor_thread or not self.supervisor_thread.is_alive():
                 self.supervisor_thread = threading.Thread(target=self._supervisor_loop, name='ZaloSupervisor', daemon=True)
                 self.supervisor_thread.start()
+
             return True
         except Exception as e:
-            logger.error(f'Lỗi kết nối Socket Gateway: {e}')
+            logger.error(f'[Socket] Connection failed: {e}')
             self.close()
             return False
 
@@ -240,7 +352,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
             except Exception:
                 pass
             self.sock = None
-        logger.debug('Đã đóng kết nối Socket.')
+        logger.debug('[Socket] Connection closed')
 
     def disconnect(self):
         self.close()
@@ -254,10 +366,11 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                     continue
                 chunk = self.sock.recv(8192)
                 if not chunk:
-                    logger.warning('Server đã đóng kết nối.')
+                    logger.warning('[Socket] Server closed connection')
                     break
                 self.last_traffic = time.time()
                 buf.extend(chunk)
+
                 while len(buf) >= 5:
                     res = OuterFrame.unpack_from_buffer(bytes(buf))
                     if not res:
@@ -266,171 +379,12 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                     buf = buf[consumed:]
                     try:
                         parsed = parse_incoming_frame(frame, dk=self.dk, cryptkey=self.cryptkey, my_uid=self.uid)
-                        cmd = parsed.get('cmd')
-                        sub = parsed.get('sub')
-                        if cmd in (1705, 1703, 1708, 1752, 113, 151, 207, 202, 228, 234, 235, 239, 242, 246, 250, 225, 241, 244, 901, 902, 906, 2000, 1640, 382, 383):
-                            raw_params = parsed.get('raw_params', b'')
-                            status = struct.unpack('<i', raw_params[:4])[0] if len(raw_params) >= 4 else 0
-                            ack_dict = {'cmd': cmd, 'sub': sub, 'status_code': status, 'raw_hex': raw_params[:8].hex() if raw_params else '', 'raw_params': raw_params, 'params_len': len(raw_params)}
-                            if cmd == 151:
-                                try:
-                                    if len(raw_params) > 4:
-                                        d3_res = parse_d3_compressed_json(raw_params[4:], self.uid)
-                                        if not d3_res:
-                                            d3_res = parse_d3_compressed_json(raw_params, self.uid)
-                                        if d3_res:
-                                            ack_dict['json_data'] = d3_res
-                                            u_data = d3_res.get('data') if isinstance(d3_res.get('data'), dict) else d3_res
-                                            if isinstance(u_data, dict):
-                                                ack_dict['user_profile'] = u_data
-                                                ack_dict['user_id'] = u_data.get('uid') or u_data.get('userId')
-                                                ack_dict['display_name'] = u_data.get('dpn') or u_data.get('displayName')
-                                                ack_dict['avatar'] = u_data.get('avt') or u_data.get('avatar')
-                                                ack_dict['cover'] = u_data.get('cover')
-                                                ack_dict['status'] = u_data.get('stt')
-                                                ack_dict['global_id'] = u_data.get('globalId')
-                                                ack_dict['business_account'] = u_data.get('business_account')
-                                except Exception:
-                                    pass
-                            if cmd in (901, 902):
-                                try:
-                                    ack_dict['status_code'] = struct.unpack_from('<i', raw_params, 0)[0] if len(raw_params) >= 4 else 0
-                                    if b'{' in raw_params:
-                                        j_idx = raw_params.find(b'{')
-                                        j_obj = json.loads(raw_params[j_idx:].decode('utf-8', errors='ignore'))
-                                        j_data = j_obj.get('data') or j_obj
-                                        j_gid = j_data.get('groupId') or j_data.get('grid') or j_data.get('id') or j_data.get('group_id')
-                                        if not j_gid and isinstance(j_data, dict) and isinstance(j_data.get('item'), dict):
-                                            j_gid = j_data['item'].get('gid')
-                                        if j_gid:
-                                            ack_dict['group_id'] = int(j_gid)
-                                    import zlib as _zlib
-                                    for _i in range(len(raw_params) - 1):
-                                        if raw_params[_i:_i + 2] == b'\x1f\x8b':
-                                            try:
-                                                _dec = _zlib.decompress(raw_params[_i:], 31)
-                                                _j = json.loads(_dec)
-                                                _d = _j.get('data') or _j
-                                                _gid = _d.get('groupId') or _d.get('grid') or _d.get('id')
-                                                if not _gid and isinstance(_d, dict) and isinstance(_d.get('item'), dict):
-                                                    _gid = _d['item'].get('gid')
-                                                if _gid:
-                                                    ack_dict['group_id'] = int(_gid)
-                                                ack_dict['json_data'] = _j
-                                                break
-                                            except Exception:
-                                                pass
-                                    if cmd == 902 and ack_dict.get('status_code') == 0:
-                                        ack_dict['join_success'] = True
-                                        logger.debug(f"CMD 902 SUB {sub}: Join nhóm thành công! GID={ack_dict.get('group_id', '?')}")
-                                except Exception:
-                                    pass
-                                if cmd == 902:
-                                    with self.ack_lock:
-                                        self.cmd_ack_results[902] = ack_dict
-                                        if 902 in self.cmd_ack_events:
-                                            self.cmd_ack_events[902].set()
-                                        self.cmd_ack_results[901] = ack_dict
-                                        if 901 in self.cmd_ack_events:
-                                            self.cmd_ack_events[901].set()
-                                        self.general_ack_event.set()
-                            if cmd in (244, 901, 902):
-                                try:
-                                    if len(raw_params) >= 8:
-                                        ack_dict['server_time'] = struct.unpack_from('<I', raw_params, 4)[0]
-                                    if len(raw_params) > 4:
-                                        d3_res = parse_d3_compressed_json(raw_params[4:], self.uid)
-                                        if d3_res:
-                                            ack_dict['json_data'] = d3_res
-                                            if 'error_code' in d3_res:
-                                                ack_dict['group_error_code'] = d3_res['error_code']
-                                                from core.models.enums import ZaloGroupErrorCode
-                                                ack_dict['group_error_msg'] = ZaloGroupErrorCode.get_message(d3_res['error_code'])
-                                            if d3_res.get('group_id'):
-                                                ack_dict['group_id'] = int(d3_res['group_id'])
-                                            elif isinstance(d3_res.get('data'), dict) and isinstance(d3_res['data'].get('item'), dict) and d3_res['data']['item'].get('gid'):
-                                                ack_dict['group_id'] = int(d3_res['data']['item']['gid'])
-                                            item_data = d3_res.get('data', {}).get('item', {}) if isinstance(d3_res.get('data'), dict) else (d3_res.get('item', {}) if isinstance(d3_res.get('item'), dict) else {})
-                                            if isinstance(item_data, dict):
-                                                g_info = item_data.get('ginfo') or {}
-                                                if isinstance(g_info, dict):
-                                                    ack_dict['ginfo'] = g_info
-                                                    if g_info.get('name'):
-                                                        ack_dict['group_name'] = g_info['name']
-                                                    if g_info.get('creatorId'):
-                                                        ack_dict['creator_id'] = g_info['creatorId']
-                                                    if g_info.get('totalMembers'):
-                                                        ack_dict['total_member'] = g_info['totalMembers']
-                                                    if g_info.get('desc'):
-                                                        ack_dict['desc'] = g_info['desc']
-                                                    if g_info.get('fullAvt') or g_info.get('avt'):
-                                                        ack_dict['avatar'] = g_info.get('fullAvt') or g_info.get('avt')
-                                                    if g_info.get('currentMems'):
-                                                        ack_dict['current_mems'] = g_info['currentMems']
-                                                    if g_info.get('setting'):
-                                                        ack_dict['setting'] = g_info['setting']
-                                                    if g_info.get('admins'):
-                                                        ack_dict['admins'] = g_info['admins']
-                                    if b'{' in raw_params and (not ack_dict.get('group_id')):
-                                        j_idx = raw_params.find(b'{')
-                                        j_obj = json.loads(raw_params[j_idx:].decode('utf-8', errors='ignore'))
-                                        j_data = j_obj.get('data') or j_obj
-                                        j_gid = j_data.get('groupId') or j_data.get('grid') or j_data.get('id')
-                                        if not j_gid and isinstance(j_data, dict) and isinstance(j_data.get('item'), dict):
-                                            j_gid = j_data['item'].get('gid')
-                                        if j_gid:
-                                            ack_dict['group_id'] = int(j_gid)
-                                    if ack_dict.get('group_id'):
-                                        gid_key = str(ack_dict['group_id'])
-                                        kg_entry = self.known_groups.get(gid_key, {})
-                                        kg_entry['group_id'] = ack_dict['group_id']
-                                        kg_entry['ts'] = time.time()
-                                        for k_field in ('group_name', 'creator_id', 'total_member', 'desc', 'avatar', 'current_mems', 'setting', 'admins', 'ginfo'):
-                                            if ack_dict.get(k_field):
-                                                kg_entry[k_field] = ack_dict[k_field]
-                                        self.known_groups[gid_key] = kg_entry
-                                except Exception:
-                                    pass
-                            if cmd == 1703:
-                                try:
-                                    topics_list = []
-                                    if b'{' in raw_params:
-                                        j_idx = raw_params.find(b'{')
-                                        j_obj = json.loads(raw_params[j_idx:].decode('utf-8', errors='ignore'))
-                                        j_data = j_obj.get('data') or j_obj
-                                        topics_list = j_data.get('topics') or j_obj.get('topics') or []
-                                        if not topics_list and isinstance(j_data, list):
-                                            topics_list = j_data
-                                    ack_dict['topics'] = topics_list
-                                except Exception:
-                                    pass
-                            with self.ack_lock:
-                                self.cmd_ack_results[cmd] = ack_dict
-                                self.last_ack_result = ack_dict
-                                if cmd in self.cmd_ack_events:
-                                    self.cmd_ack_events[cmd].set()
-                                self.general_ack_event.set()
-                        if cmd == 201:
-                            raw_params = parsed.get('raw_params', b'')
-                            if len(raw_params) >= 4:
-                                try:
-                                    pushed_gid = struct.unpack_from('<I', raw_params, 0)[0]
-                                    if pushed_gid > 0:
-                                        if str(pushed_gid) not in self.known_groups:
-                                            self.known_groups[str(pushed_gid)] = {'group_id': pushed_gid, 'ts': time.time()}
-                                            logger.debug(f'[CMD201] Discovered group_id={pushed_gid} from server push')
-                                except Exception:
-                                    pass
-                        if self.on_message_callback:
-                            try:
-                                self.on_message_callback(parsed)
-                            except Exception as cb_err:
-                                logger.error(f'Lỗi trong on_message_callback: {cb_err}')
+                        self.dispatcher.dispatch(parsed)
                     except Exception as frame_err:
-                        logger.error(f'Lỗi xử lý khung tin socket: {frame_err}')
+                        logger.error(f'[Socket] Error dispatching frame: {frame_err}')
             except Exception as e:
                 if self.is_running:
-                    logger.warning(f'Ngoại lệ trong recv_loop: {e}')
+                    logger.warning(f'[Socket] Exception in recv loop: {e}')
                 break
         self.is_connected = False
 
@@ -451,7 +405,7 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
                 if self.debug:
                     logger.debug(f'[Ping] Sent Keepalive Ping CMD 1971 (Seq={seq}, ck={hex(ck)})')
             except Exception as e:
-                logger.warning(f'Gửi ping keepalive thất bại: {e}')
+                logger.warning(f'[Ping] Keepalive failed: {e}')
                 self.is_connected = False
                 break
 
@@ -473,11 +427,11 @@ class ZaloSocketClient(SendMessageActionMixin, SendImageActionMixin, SendVideoAc
             if not self.is_running:
                 break
             now = time.time()
-            if not self.is_connected or now - self.last_traffic > 35.0:
-                logger.warning(f'[Supervisor] Phát hiện kết nối bị gián đoạn (idle {now - self.last_traffic:.1f}s). Đang tự động kết nối lại...')
+            if not self.is_connected or (now - self.last_traffic > 35.0):
+                logger.warning(f'[Supervisor] Connection idle ({now - self.last_traffic:.1f}s) or dropped. Reconnecting...')
                 self._disconnect_socket()
                 time.sleep(1.0)
                 try:
                     self.connect()
                 except Exception as ex:
-                    logger.error(f'[Supervisor] Lỗi khi kết nối lại: {ex}')
+                    logger.error(f'[Supervisor] Reconnect error: {ex}')

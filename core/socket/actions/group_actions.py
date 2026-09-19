@@ -108,7 +108,7 @@ class GroupActionsMixin:
     def block_group_member(self, group_id: int, member_uids: int | str | List[int | str]) -> bool:
         return self.kick_member(group_id=group_id, member_uids=member_uids, is_block=True)
 
-    def leave_group(self, group_id: int | str, new_owner_id: int=0, silent: bool=False, block_readd: bool=False, wait_response: bool=False, timeout: float=5.0) -> Union[bool, Dict[str, Any]]:
+    def leave_group(self, group_id: int | str, new_owner_id: int=0, silent: bool=False, block_readd: bool=False, wait_response: bool=False, timeout: float=1.5) -> Union[bool, Dict[str, Any]]:
         if not self.is_connected or not self.sock:
             return {'sent': False, 'error': 'Not connected'} if wait_response else False
         try:
@@ -129,9 +129,9 @@ class GroupActionsMixin:
             self.last_traffic = time.time()
             logger.debug(f'Đã gửi yêu cầu rời Group {gid} qua Socket (CMD 225 SUB 3 & CMD 239 SUB 1)')
             if wait_response:
-                got_ack, ack_res = self._wait_cmd_ack(CMD_LEAVE_GROUP_225, timeout=timeout)
+                got_ack, ack_res = self._wait_cmd_ack(CMD_LEAVE_GROUP_225, timeout=min(timeout, 1.0))
                 if not got_ack:
-                    got_ack, ack_res = self._wait_cmd_ack(CMD_LEAVE_GROUP_239, timeout=timeout)
+                    got_ack, ack_res = self._wait_cmd_ack(CMD_LEAVE_GROUP_239, timeout=min(timeout, 1.0))
                 status_code = ack_res.get('status_code', 0 if got_ack else -1) if got_ack else -1
                 is_success = got_ack and (status_code == 0 or status_code == -1)
                 return {'sent': True, 'got_response': got_ack, 'success': is_success, 'status_code': status_code, 'ack_result': ack_res}
@@ -253,7 +253,7 @@ class GroupActionsMixin:
             logger.error(f'Lỗi truy vấn nhóm 906: {e}')
             return {'sent': False, 'error': str(e)} if wait_response else False
 
-    def join_group_by_link(self, link_url: str, group_id: int | str=0, msg: str='', source: int=1, wait_response: bool=True, timeout: float=10.0) -> Union[bool, Dict[str, Any]]:
+    def join_group_by_link(self, link_url: str, group_id: int | str=0, msg: str='', source: int=1, wait_response: bool=True, timeout: float=3.0) -> Union[bool, Dict[str, Any]]:
         if not self.is_connected or not self.sock:
             return {'sent': False, 'error': 'Not connected'} if wait_response else False
         try:
@@ -276,39 +276,54 @@ class GroupActionsMixin:
             logger.debug(f"CMD 901 SUB 3: Gửi join nhóm qua link '{full_url}'")
             if not wait_response:
                 return True
-            got_902, res_902 = self._wait_cmd_ack(902, timeout=timeout)
+            got_902 = False
+            res_902 = {}
+            got_901 = False
+            res_901 = {}
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                with self.ack_lock:
+                    if 902 in self.cmd_ack_results:
+                        got_902 = True
+                        res_902 = dict(self.cmd_ack_results[902])
+                        break
+                    if 901 in self.cmd_ack_results:
+                        got_901 = True
+                        res_901 = dict(self.cmd_ack_results[901])
+                        break
+                time.sleep(0.02)
             result_gid = int(group_id or 0)
+            if got_901 and not got_902:
+                mini_wait = time.time() + 0.1
+                while time.time() < mini_wait:
+                    with self.ack_lock:
+                        if 902 in self.cmd_ack_results:
+                            got_902 = True
+                            res_902 = dict(self.cmd_ack_results[902])
+                            break
+                    time.sleep(0.02)
             if got_902:
                 ec = res_902.get('status_code', -1)
                 is_success = ec == 0
                 if res_902.get('group_id'):
                     result_gid = int(res_902['group_id'])
-                if is_success and (not result_gid):
-                    deadline = time.time() + 3.0
-                    while time.time() < deadline:
-                        time.sleep(0.1)
+                if is_success and not result_gid:
+                    dl = time.time() + 0.2
+                    while time.time() < dl:
+                        time.sleep(0.04)
                         new_groups = set(getattr(self, 'known_groups', {}).keys()) - groups_before
                         if new_groups:
                             result_gid = int(next(iter(new_groups)))
                             break
-                logger.debug(f"CMD 902: Join {('THÀNH CÔNG' if is_success else 'THẤT BẠI')} (error_code={ec}), GID={result_gid or 'N/A'}")
+                logger.debug(f"CMD 902: Join {'THÀNH CÔNG' if is_success else 'THẤT BẠI'} (error_code={ec}), GID={result_gid or 'N/A'}")
                 return {'sent': True, 'got_response': True, 'success': is_success, 'status_code': ec, 'group_id': result_gid or None, 'cmd': 902, 'ack_result': res_902}
-            deadline = time.time() + 2.0
-            while time.time() < deadline:
-                time.sleep(0.1)
-                new_groups = set(getattr(self, 'known_groups', {}).keys()) - groups_before
-                if new_groups:
-                    result_gid = int(next(iter(new_groups)))
-                    break
-            got_901, res_901 = (False, {})
-            with self.ack_lock:
-                if 901 in self.cmd_ack_results:
-                    got_901 = True
-                    res_901 = self.cmd_ack_results[901]
-            ec_901 = res_901.get('status_code', -1) if got_901 else -1
-            if got_901 and ec_901 == 0:
-                return {'sent': True, 'got_response': True, 'success': True, 'status_code': 0, 'group_id': result_gid or None, 'cmd': 901, 'note': 'Join request gửi OK (ec=0).'}
-            return {'sent': True, 'got_response': bool(got_901), 'success': bool(result_gid), 'status_code': ec_901, 'group_id': result_gid or None, 'cmd': 901, 'note': 'Không nhận được CMD 902'}
+            if got_901:
+                ec_901 = res_901.get('status_code', 0)
+                if not result_gid and res_901.get('group_id'):
+                    result_gid = int(res_901['group_id'])
+                is_success = (ec_901 == 0) or bool(result_gid)
+                return {'sent': True, 'got_response': True, 'success': is_success, 'status_code': ec_901, 'group_id': result_gid or None, 'cmd': 901, 'note': 'Join request gửi OK (ec=0).', 'ack_result': res_901}
+            return {'sent': True, 'got_response': False, 'success': False, 'status_code': -1, 'group_id': result_gid or None, 'cmd': None, 'note': 'Timeout chờ phản hồi socket'}
         except Exception as e:
             logger.error(f'Lỗi join_group_by_link CMD 901: {e}')
             return {'sent': False, 'error': str(e)} if wait_response else False
@@ -332,7 +347,7 @@ class GroupActionsMixin:
             logger.error(f'Lỗi chấp nhận lời mời nhóm qua socket: {e}')
             return False
 
-    def request_join_group(self, group_id: int | str=0, link_url: str='', msg: str='', source: int=1, sub_source: int=0, wait_response: bool=False, timeout: float=8.0) -> Union[bool, Dict[str, Any]]:
+    def request_join_group(self, group_id: int | str=0, link_url: str='', msg: str='', source: int=1, sub_source: int=0, wait_response: bool=False, timeout: float=3.0) -> Union[bool, Dict[str, Any]]:
         if not self.is_connected or not self.sock:
             return {'sent': False, 'error': 'Not connected'} if wait_response else False
         try:
@@ -351,18 +366,18 @@ class GroupActionsMixin:
             logger.debug(f"Đã gửi yêu cầu tham gia/link Group (GID={gid}, Link='{link_url}') qua Socket (CMD 244 SUB 4)")
             if wait_response:
                 got_ack, ack_res = self._wait_cmd_ack(CMD_REQUEST_JOIN_GROUP, timeout=timeout)
-                result_gid = ack_res.get('group_id')
+                result_gid = ack_res.get('group_id') or (gid if gid else None)
                 status_code = ack_res.get('status_code', -1) if got_ack else -1
                 group_ec = ack_res.get('group_error_code', 0)
                 group_msg = ack_res.get('group_error_msg')
                 if group_ec and group_ec != 0:
-                    is_success = False
+                    is_success = bool(group_ec in (17009, 18004))
                 else:
                     is_success = got_ack and status_code == 0
                 if is_success and (not result_gid):
-                    deadline = time.time() + 3.0
+                    deadline = time.time() + 0.3
                     while time.time() < deadline:
-                        time.sleep(0.1)
+                        time.sleep(0.05)
                         new_groups = set(getattr(self, 'known_groups', {}).keys()) - groups_before
                         if new_groups:
                             result_gid = int(next(iter(new_groups)))

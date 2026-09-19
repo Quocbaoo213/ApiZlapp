@@ -6,12 +6,12 @@ logger = logging.getLogger('core.socket.actions.pin_topic')
 
 class PinTopicActionMixin:
 
-    def pin_message(self, group_id: int, title: str='', cli_msg_id: int=0, global_msg_id: int=0, sender_name: str='Member') -> bool:
+    def pin_message(self, group_id: int, title: str='', cli_msg_id: int=0, global_msg_id: int=0, sender_name: str='Member', sender_uid: int=0) -> bool:
         if not self.is_connected or not self.sock:
             return False
         try:
             seq, cmsg, _ = self._get_next_counters()
-            inner = build_pin_topic_packet(uid=self.uid, group_id=int(group_id), title=title, cli_msg_id=int(cli_msg_id or 0), global_msg_id=int(global_msg_id or 0), sender_name=sender_name, seq=seq, ck_val=0)
+            inner = build_pin_topic_packet(uid=self.uid, group_id=int(group_id), title=title, cli_msg_id=int(cli_msg_id or 0), global_msg_id=int(global_msg_id or 0), sender_name=sender_name, sender_uid=int(sender_uid or 0), seq=seq, ck_val=0)
             outer = build_outer_frame(inner, self.dk)
             with self.send_lock:
                 if self.sock:
@@ -50,10 +50,8 @@ class PinTopicActionMixin:
             seq, cmsg, _ = self._get_next_counters()
             inner = build_fetch_pinned_topics_packet(uid=self.uid, group_id=gid, seq=seq, ck_val=0)
             outer = build_outer_frame(inner, self.dk)
-            with self.ack_lock:
-                ev = self._ack_waiters.get((1703, 0))
-                if ev:
-                    ev.clear()
+            if wait_response and hasattr(self, '_prepare_cmd_ack'):
+                self._prepare_cmd_ack(1703)
             with self.send_lock:
                 if self.sock:
                     self.sock.sendall(outer)
@@ -61,7 +59,12 @@ class PinTopicActionMixin:
             logger.debug(f'Đã gửi yêu cầu lấy danh sách ghim nhóm {gid} qua Socket (CMD 1703 SUB 0)')
             if not wait_response:
                 return True
-            time.sleep(min(timeout, 0.5))
+            if hasattr(self, '_wait_cmd_ack'):
+                got_ack, ack_res = self._wait_cmd_ack(1703, timeout=timeout)
+                if got_ack and ack_res:
+                    return ack_res
+            else:
+                time.sleep(min(timeout, 0.5))
             return {'sent': True, 'group_id': gid, 'status': 'sent'}
         except Exception as e:
             logger.error(f'Lỗi lấy danh sách tin nhắn ghim: {e}')
